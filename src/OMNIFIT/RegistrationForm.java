@@ -143,7 +143,7 @@ public class RegistrationForm extends javax.swing.JPanel {
         jLabel6.setText("Role:");
         add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 220, 100, 30));
 
-        comboRole.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Catering Manager", "Chef/Cook", "Waitstaff/Server", "Bartender", "Kitchen Assistant", "Event Coordinator" }));
+        comboRole.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GYM Manager", "Chef/Cook", "Coach / Instructor", "Bartender", "Receptionist", "Staff" }));
         comboRole.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 comboRoleActionPerformed(evt);

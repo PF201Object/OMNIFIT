@@ -19,7 +19,7 @@ public class LoginForm extends javax.swing.JPanel {
         this.setOpaque(false);
     }
 
-    private void handleLoginProcess() {
+private void handleLoginProcess() {
         String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
 
@@ -28,8 +28,7 @@ public class LoginForm extends javax.swing.JPanel {
             return;
         }
 
-        // Logic: Config.getUserRole should query the Users table 
-        // and return the Role from the Management table linked by Username.
+        // Config.getUserRole queries the Users table 
         String role = Config.getUserRole(username, password);
 
         if (role != null) {            
@@ -41,8 +40,8 @@ public class LoginForm extends javax.swing.JPanel {
                 try { Thread.sleep(300); } catch (InterruptedException e) {}
 
                 java.awt.EventQueue.invokeLater(() -> {
-                    // Success: Passes the role (e.g., "Administrator" or "Chef") to the dashboard
-                    dashboard.loginSuccess(role); 
+                    // FIX: Pass BOTH username and role to match DashboardForm.loginSuccess(String u, String r)
+                    dashboard.loginSuccess(username, role); 
                 });
             }).start();
         } else {
