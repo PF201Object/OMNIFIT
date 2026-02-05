@@ -7,17 +7,16 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public final class DashboardForm extends javax.swing.JFrame {
-
-    // Panel Declarations
-    private Profile profilePanel;    
+    
+    private javax.swing.Icon originalIcon;
     private User userPanel;
     private Management managementPanel;
     private Services servicesPanel;
     private Members membersPanel;
     private LoginForm loginPanel;
     private RegistrationForm registerPanel;
+    private Profile profilePanel;    
 
-    // State Variables
     private final int homeOriginalY;
     private String userRole = "Guest";
     private String currentUsername = ""; 
@@ -25,17 +24,16 @@ public final class DashboardForm extends javax.swing.JFrame {
 
     public DashboardForm() {
         initComponents();
-        homeOriginalY = 10; // Fixed Y coordinate from your XML
+        homeOriginalY = MEMBERS.getY();
         customInit();
         showLogin();
-        
     }
 
     private void customInit() {
         this.setBackground(new Color(0, 0, 0, 0));
         this.setLocationRelativeTo(null);
 
-        // Movement Logic for Undecorated Frame
+        // Drag window logic
         Background.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent evt) {
@@ -43,19 +41,19 @@ public final class DashboardForm extends javax.swing.JFrame {
                 mouseY = evt.getY();
             }
         });
-
-        // Initialize all Sub-Panels
+        
+        // Initialize Panels
         userPanel = new User();
         managementPanel = new Management();
         servicesPanel = new Services();
         membersPanel = new Members();
         loginPanel = new LoginForm(this);
         registerPanel = new RegistrationForm(this);
-        profilePanel = new Profile();
+        profilePanel = new Profile(this);
 
-        // Layout Constraints matching your design space
         int x = 220, y = 30, w = 570, h = 350;
 
+        // Add panels to the Content Pane
         getContentPane().add(userPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(managementPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(servicesPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
@@ -64,8 +62,12 @@ public final class DashboardForm extends javax.swing.JFrame {
         getContentPane().add(registerPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(profilePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
 
-        // Background indexing
         getContentPane().setComponentZOrder(Background, getContentPane().getComponentCount() - 1);
+        
+        // Refresh UI
+        getContentPane().revalidate();
+        getContentPane().repaint();
+
         hideAllPanels();
     }
 
@@ -76,115 +78,180 @@ public final class DashboardForm extends javax.swing.JFrame {
         membersPanel.setVisible(false);
         loginPanel.setVisible(false);
         registerPanel.setVisible(false);
-        profilePanel.setVisible(false); 
-
         logo.setVisible(true);
         ABOUT.setVisible(true);
+        profilePanel.setVisible(false); 
+        profile.setVisible(false); 
+
+
         btnUser.setVisible(false);
         MEMBERS.setVisible(false);
         SERVICES.setVisible(false);
         MANAGEMENT.setVisible(false);
-        btnLogout.setVisible(false);
-        profile.setVisible(false); 
     }
 
-    private void showPanel(JPanel panel) {
-        if (loginPanel.isVisible() || registerPanel.isVisible()) {
-             if (!userRole.equals("Guest")) {
-                 loginPanel.setVisible(false);
-                 registerPanel.setVisible(false);
-             } else { return; }
-        }
+		private void showPanel(JPanel panel) {
+			// Only block if login/register are actually visible
+			if (loginPanel.isVisible() || registerPanel.isVisible()) {
+				 if (!userRole.equals("Guest")) {
+					 loginPanel.setVisible(false);
+					 registerPanel.setVisible(false);
+				 } else {
+					 return;
+				 }
+			}
 
-        userPanel.setVisible(false);
-        managementPanel.setVisible(false);
-        servicesPanel.setVisible(false);
-        membersPanel.setVisible(false);
-        profilePanel.setVisible(false);
+			userPanel.setVisible(false);
+			managementPanel.setVisible(false);
+			servicesPanel.setVisible(false);
+			membersPanel.setVisible(false);
+                        profilePanel.setVisible(false);
 
-        // Load specific data when panel is shown
-        if (panel instanceof Profile) {
-            ((Profile) panel).loadUserProfile(currentUsername);
-        }
+			// REFRESH LOGIC: Check which panel is being shown and reload its data
+			if (panel instanceof User) {
+				((User) panel).loadUserData();
+			} else if (panel instanceof Management) {
+				((Management) panel).loadBookingData();
+			} else if (panel instanceof Members) {
+				((Members) panel).loadMemberData();
+			} else if (panel instanceof Profile) {
+                                ((Profile) panel).loadUserProfile(currentUsername);
+                        }
 
-        panel.setVisible(true);
-        panel.requestFocus();
-    }
 
-    public void loginSuccess(String username, String role) {
-    this.currentUsername = username;
-    this.userRole = role;
+			panel.setVisible(true);
+			panel.requestFocus(); 
+		}
+
+    public void showLogin() {
         hideAllPanels();
-                
-        ABOUT.setVisible(false);
-        btnLogout.setVisible(true);
-        MEMBERS.setVisible(true);
-        SERVICES.setVisible(true);
-        profile.setVisible(true); 
-        
-        // Role-based access
-        boolean isAdmin = "Administrator".equalsIgnoreCase(role);
-        MANAGEMENT.setVisible(isAdmin); 
-        btnUser.setVisible(isAdmin);    
-        
-        showPanel(membersPanel);
+        loginPanel.setVisible(true);
+    }
+    
+    public void showRegister() {
+        hideAllPanels();
+        registerPanel.setVisible(true);
     }
 
-    public void showLogin() { hideAllPanels(); loginPanel.setVisible(true); }
-    public void showRegister() { hideAllPanels(); registerPanel.setVisible(true); }
+	public void loginSuccess(String username, String role) {
+                this.currentUsername = username;
+		this.userRole = role;
+		hideAllPanels();
+                
+                ABOUT.setVisible(false);
+                logo.setVisible(true);
+		MEMBERS.setVisible(true);
+		SERVICES.setVisible(true);
+                profile.setVisible(true); 
+		boolean isAdmin = "Administrator".equalsIgnoreCase(role);
+		
+		MANAGEMENT.setVisible(isAdmin); 
+		btnUser.setVisible(isAdmin);    
+		
+		// Refresh members specifically on login
+		membersPanel.loadMemberData(); 
+		showPanel(membersPanel);
+		
+		getContentPane().revalidate();
+		getContentPane().repaint();
+	}
 
+    // ===== ANIMATION =====
+    private javax.swing.ImageIcon getGlowIcon(javax.swing.ImageIcon icon) {
+    int w = icon.getIconWidth();
+    int h = icon.getIconHeight();
+    java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+    java.awt.Graphics g = bi.createGraphics();
+    icon.paintIcon(null, g, 0, 0);
+    g.dispose();
+
+    // The scale factors: {Red, Green, Blue, Alpha}
+    // We boost Blue (1.5f) and Green (1.2f) to create a Cyan/Blue glow effect
+    float[] scales = { 0.5f, 0.8f, 2.0f, 1.0f }; 
+    float[] offsets = new float[4];
+    java.awt.image.RescaleOp op = new java.awt.image.RescaleOp(scales, offsets, null);
+    return new javax.swing.ImageIcon(op.filter(bi, null));
+    }
+        
+    private void applyGlowEffect(javax.swing.JButton btn, boolean enter) {
+        if (enter) {
+            // Save original as a property of the button itself
+            btn.putClientProperty("origIcon", btn.getIcon());
+            btn.setIcon(getGlowIcon((javax.swing.ImageIcon)btn.getIcon()));
+            runAnimation(btn, true);
+        } else {
+            // Retrieve original from the button property
+            javax.swing.Icon orig = (javax.swing.Icon)btn.getClientProperty("origIcon");
+            if (orig != null) {
+                btn.setIcon(orig);
+            }
+            runAnimation(btn, false);
+        }
+    }
+        
     private void runAnimation(javax.swing.JButton btn, boolean enter) {
         btn.setForeground(enter ? new Color(0, 153, 255) : Color.WHITE);
+
         Timer timer = new Timer(10, e -> {
             if (enter && btn.getY() > homeOriginalY - 6) {
                 btn.setLocation(btn.getX(), btn.getY() - 1);
             } else if (!enter && btn.getY() < homeOriginalY) {
                 btn.setLocation(btn.getX(), btn.getY() + 1);
-            } else { ((Timer) e.getSource()).stop(); }
+            } else {
+                ((Timer) e.getSource()).stop();
+            }
         });
         timer.start();
     }
 
-    // Event Handlers
-    private void MEMBERSActionPerformed(java.awt.event.ActionEvent evt) { showPanel(membersPanel); }
-    private void SERVICESActionPerformed(java.awt.event.ActionEvent evt) { showPanel(servicesPanel); }
-    private void MANAGEMENTActionPerformed(java.awt.event.ActionEvent evt) { showPanel(managementPanel); }
-    private void btnUserActionPerformed(java.awt.event.ActionEvent evt) { showPanel(userPanel); }
-    private void profileActionPerformed(java.awt.event.ActionEvent evt) { showPanel(profilePanel); }
-    private void btnExitActionPerformed(java.awt.event.ActionEvent evt) { System.exit(0); }
-    private void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) { 
-        userRole = "Guest"; 
-        currentUsername = "";
-        showLogin(); 
+    // ===== BUTTON ACTIONS =====
+    private void MEMBERSActionPerformed(java.awt.event.ActionEvent evt) {
+        showPanel(membersPanel);
     }
-    private void ABOUTActionPerformed(java.awt.event.ActionEvent evt) { /* Logic for About panel */ }
 
-    // ===== MOUSE EVENTS (Handlers for Animations) =====
+    private void SERVICESActionPerformed(java.awt.event.ActionEvent evt) {
+        showPanel(servicesPanel);
+    }
+
+    private void MANAGEMENTActionPerformed(java.awt.event.ActionEvent evt) {
+        showPanel(managementPanel);
+    }
+
+    private void btnUserMouseClicked(java.awt.event.MouseEvent evt) {
+        showPanel(userPanel);
+    }
+
+    private void btnExitActionPerformed(java.awt.event.ActionEvent evt) {
+        System.exit(0);
+    }
+
+    void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) {
+        userRole = "Guest";
+        showLogin();
+    }
+
+    // ===== HOVER EFFECTS =====
     private void MEMBERSMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(MEMBERS, true); }
     private void MEMBERSMouseExited(java.awt.event.MouseEvent evt) { runAnimation(MEMBERS, false); }
+
     private void SERVICESMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(SERVICES, true); }
     private void SERVICESMouseExited(java.awt.event.MouseEvent evt) { runAnimation(SERVICES, false); }
+
     private void MANAGEMENTMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(MANAGEMENT, true); }
     private void MANAGEMENTMouseExited(java.awt.event.MouseEvent evt) { runAnimation(MANAGEMENT, false); }
-    private void profileMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(profile, true); }
-    private void profileMouseExited(java.awt.event.MouseEvent evt) { runAnimation(profile, false); }
-    private void ABOUTMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(ABOUT, true); }
-    private void ABOUTMouseExited(java.awt.event.MouseEvent evt) { runAnimation(ABOUT, false); }
-    private void btnUserMouseEntered(java.awt.event.MouseEvent evt) { runAnimation(btnUser, true); }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         logo = new javax.swing.JLabel();
-        profile = new javax.swing.JButton();
         ABOUT = new javax.swing.JButton();
         btnUser = new javax.swing.JButton();
+        profile = new javax.swing.JButton();
         btnExit = new javax.swing.JButton();
         MEMBERS = new javax.swing.JButton();
         SERVICES = new javax.swing.JButton();
         MANAGEMENT = new javax.swing.JButton();
-        btnLogout = new javax.swing.JButton();
         Background = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -192,86 +259,202 @@ public final class DashboardForm extends javax.swing.JFrame {
         setResizable(false);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/LOGO.png"))); 
+        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/LOGO.png"))); // NOI18N
         getContentPane().add(logo, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 100, 260, 220));
 
-        profile.setFont(new java.awt.Font("Serif", 1, 18)); 
-        profile.setForeground(new java.awt.Color(255, 255, 255));
-        profile.setText("PROFILE");
-        profile.setBorderPainted(false);
-        profile.setContentAreaFilled(false);
-        profile.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        profile.addActionListener(evt -> profileActionPerformed(evt));
-        profile.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(MouseEvent evt) { profileMouseEntered(evt); }
-            public void mouseExited(MouseEvent evt) { profileMouseExited(evt); }
-        });
-        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(660, 10, 140, 40));
-
-        ABOUT.setFont(new java.awt.Font("Serif", 1, 18)); 
+        ABOUT.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         ABOUT.setForeground(new java.awt.Color(255, 255, 255));
         ABOUT.setText("ABOUT US");
         ABOUT.setBorderPainted(false);
         ABOUT.setContentAreaFilled(false);
         ABOUT.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        ABOUT.addActionListener(evt -> ABOUTActionPerformed(evt));
+        ABOUT.setFocusPainted(false);
+        ABOUT.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                ABOUTMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                ABOUTMouseExited(evt);
+            }
+        });
+        ABOUT.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ABOUTActionPerformed(evt);
+            }
+        });
         getContentPane().add(ABOUT, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 160, 40));
 
-        btnUser.setFont(new java.awt.Font("Serif", 1, 18)); 
+        btnUser.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         btnUser.setForeground(new java.awt.Color(255, 255, 255));
         btnUser.setText("USER PANEL");
         btnUser.setBorderPainted(false);
         btnUser.setContentAreaFilled(false);
-        btnUser.addActionListener(evt -> btnUserActionPerformed(evt));
-        getContentPane().add(btnUser, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 10, 180, 40));
+        btnUser.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnUser.setFocusPainted(false);
+        btnUser.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnUserMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnUserMouseExited(evt);
+            }
+        });
+        btnUser.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnUserActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnUser, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 10, 180, 40));
 
-        btnExit.setFont(new java.awt.Font("Serif", 1, 24)); 
+        profile.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
+        profile.setForeground(new java.awt.Color(255, 255, 255));
+        profile.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/Profile.png"))); // NOI18N
+        profile.setBorderPainted(false);
+        profile.setContentAreaFilled(false);
+        profile.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        profile.setFocusPainted(false);
+        profile.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                profileMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                profileMouseExited(evt);
+            }
+        });
+        profile.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                profileActionPerformed(evt);
+            }
+        });
+        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 0, 70, 50));
+
+        btnExit.setFont(new java.awt.Font("Serif", 1, 24)); // NOI18N
         btnExit.setForeground(new java.awt.Color(255, 0, 0));
         btnExit.setText("X");
         btnExit.setBorderPainted(false);
         btnExit.setContentAreaFilled(false);
-        btnExit.addActionListener(evt -> btnExitActionPerformed(evt));
+        btnExit.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnExit.setFocusPainted(false);
+        btnExit.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnExitActionPerformed(evt);
+            }
+        });
         getContentPane().add(btnExit, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 0, 50, 40));
 
-        MEMBERS.setFont(new java.awt.Font("Serif", 1, 18)); 
+        MEMBERS.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         MEMBERS.setForeground(new java.awt.Color(255, 255, 255));
         MEMBERS.setText("MEMBERS");
         MEMBERS.setBorderPainted(false);
         MEMBERS.setContentAreaFilled(false);
-        MEMBERS.addActionListener(evt -> MEMBERSActionPerformed(evt));
+        MEMBERS.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        MEMBERS.setFocusPainted(false);
+        MEMBERS.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                MEMBERSMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                MEMBERSMouseExited(evt);
+            }
+        });
+        MEMBERS.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MEMBERSActionPerformed(evt);
+            }
+        });
         getContentPane().add(MEMBERS, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 130, 40));
 
-        SERVICES.setFont(new java.awt.Font("Serif", 1, 18)); 
+        SERVICES.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         SERVICES.setForeground(new java.awt.Color(255, 255, 255));
         SERVICES.setText("SERVICES");
         SERVICES.setBorderPainted(false);
         SERVICES.setContentAreaFilled(false);
-        SERVICES.addActionListener(evt -> SERVICESActionPerformed(evt));
+        SERVICES.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        SERVICES.setFocusPainted(false);
+        SERVICES.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                SERVICESMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                SERVICESMouseExited(evt);
+            }
+        });
+        SERVICES.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                SERVICESActionPerformed(evt);
+            }
+        });
         getContentPane().add(SERVICES, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 10, 130, 40));
 
-        MANAGEMENT.setFont(new java.awt.Font("Serif", 1, 18)); 
+        MANAGEMENT.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         MANAGEMENT.setForeground(new java.awt.Color(255, 255, 255));
         MANAGEMENT.setText("MANAGEMENT");
         MANAGEMENT.setBorderPainted(false);
         MANAGEMENT.setContentAreaFilled(false);
-        MANAGEMENT.addActionListener(evt -> MANAGEMENTActionPerformed(evt));
-        getContentPane().add(MANAGEMENT, new org.netbeans.lib.awtextra.AbsoluteConstraints(240, 10, 180, 40));
+        MANAGEMENT.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        MANAGEMENT.setFocusPainted(false);
+        MANAGEMENT.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                MANAGEMENTMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                MANAGEMENTMouseExited(evt);
+            }
+        });
+        MANAGEMENT.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MANAGEMENTActionPerformed(evt);
+            }
+        });
+        getContentPane().add(MANAGEMENT, new org.netbeans.lib.awtextra.AbsoluteConstraints(230, 10, 180, 40));
 
-        btnLogout.setFont(new java.awt.Font("Serif", 1, 24)); 
-        btnLogout.setForeground(new java.awt.Color(255, 102, 102));
-        btnLogout.setText("LOGOUT");
-        btnLogout.setBorderPainted(false);
-        btnLogout.setContentAreaFilled(false);
-        btnLogout.addActionListener(evt -> btnLogoutActionPerformed(evt));
-        getContentPane().add(btnLogout, new org.netbeans.lib.awtextra.AbsoluteConstraints(670, 370, 160, 50));
-
-        Background.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/OmniDash.png"))); 
+        Background.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/OmniDash.png"))); // NOI18N
         getContentPane().add(Background, new org.netbeans.lib.awtextra.AbsoluteConstraints(-270, 0, 1110, 430));
 
         pack();
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
+    private void btnUserMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnUserMouseEntered
+        runAnimation(btnUser, true);    
+    }//GEN-LAST:event_btnUserMouseEntered
+
+    private void btnUserMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnUserMouseExited
+        runAnimation(btnUser, false);
+    }//GEN-LAST:event_btnUserMouseExited
+
+    private void btnUserActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUserActionPerformed
+        showPanel(userPanel);
+    }//GEN-LAST:event_btnUserActionPerformed
+
+    private void ABOUTMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_ABOUTMouseEntered
+        runAnimation(ABOUT, true);    
+    }//GEN-LAST:event_ABOUTMouseEntered
+
+    private void ABOUTMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_ABOUTMouseExited
+        runAnimation(ABOUT, false);
+    }//GEN-LAST:event_ABOUTMouseExited
+
+    private void ABOUTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ABOUTActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_ABOUTActionPerformed
+
+    private void profileMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_profileMouseEntered
+    originalIcon = profile.getIcon(); 
+    profile.setIcon(getGlowIcon((javax.swing.ImageIcon)originalIcon));
+    }//GEN-LAST:event_profileMouseEntered
+
+    private void profileMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_profileMouseExited
+    if (originalIcon != null) {
+        profile.setIcon(originalIcon);
+    }
+    }//GEN-LAST:event_profileMouseExited
+    
+    private void profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_profileActionPerformed
+        showPanel(profilePanel);
+    }//GEN-LAST:event_profileActionPerformed
+
+    // ===== MAIN =====
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(() -> {
             new DashboardForm().setVisible(true);
@@ -285,15 +468,8 @@ public final class DashboardForm extends javax.swing.JFrame {
     private javax.swing.JButton MEMBERS;
     private javax.swing.JButton SERVICES;
     private javax.swing.JButton btnExit;
-    private javax.swing.JButton btnLogout;
     private javax.swing.JButton btnUser;
     private javax.swing.JLabel logo;
     private javax.swing.JButton profile;
     // End of variables declaration//GEN-END:variables
-    
-    // Variables declaration - do not modify                                                                                                                                                   
-    private void btnUserMouseExited(java.awt.event.MouseEvent evt) {
-        runAnimation(btnUser, false);
-    }
-                                        
 }

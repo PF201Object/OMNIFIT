@@ -1,7 +1,6 @@
 package OMNIFIT;
 
 import Config.Config;
-import java.awt.Color;
 import javax.swing.JOptionPane;
 
 public class RegistrationForm extends javax.swing.JPanel {
@@ -27,71 +26,98 @@ public class RegistrationForm extends javax.swing.JPanel {
         btnBack.setContentAreaFilled(false);
     }
 
-		private void handleRegistration(boolean isAdminRequest) {
-			String username = txtName.getText().trim(); 
-			String email = txtEmail.getText().trim();
-			String password = new String(txtPassword.getPassword());
-			String contact = txtContact.getText().trim();
-			
-			String role = isAdminRequest ? "Administrator" : comboRole.getSelectedItem().toString();
-			String status = "Active";
-			double salary = 0.0;
+private void handleRegistration(boolean isAdminRequest) {
+        String username = txtName.getText().trim(); 
+        String email = txtEmail.getText().trim();
+        String password = new String(txtPassword.getPassword());
+        String contact = txtContact.getText().trim();
+        
+        String role = isAdminRequest ? "Administrator" : comboRole.getSelectedItem().toString();
+        String status = "Active";
+        double salary = 0.00;
 
-			// Automated Salary Assignment
-			switch (role) {
-				case "Administrator": salary = 50000.0; break;
-				case "GYM Manager": salary = 30000.0; break;
-				case "Coach / Instructor": salary = 20000.0; break;
-				case "Receptionist": salary = 15000.0; break;
-				case "Staff": salary = 14000.0; break;
-				default: salary = 0.0; break;
-			}
+        // Automated Salary Assignment
+        switch (role) {
+            case "Administrator": salary = 50000.00; break;
+            case "GYM Manager": salary = 30000.00; break;
+            case "Coach/Instructor": salary = 20000.00; break;
+            case "Receptionist": salary = 15000.00; break;
+            case "Staff": salary = 14000.00; break;
+            default: salary = 0.00; break;
+        }
 
-			// 1. Basic Empty Field Validation
-			if (username.isEmpty() || email.isEmpty() || password.isEmpty() || contact.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "Please fill all required fields!", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
+        // --- VALIDATIONS ---
+        if (username.isEmpty() || email.isEmpty() || password.isEmpty() || contact.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill all required fields!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-			// 2. Email Validation (Must contain '@' and '.')
-			if (!email.contains("@") || !email.contains(".")) {
-				JOptionPane.showMessageDialog(this, "Please enter a valid email address (e.g., user@example.com)", "Invalid Email", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
+        // Database Checks
+        if (Config.isUserExists(username)) {
+            JOptionPane.showMessageDialog(this, "Username is already taken!", "Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        if (!email.contains("@") || !email.contains(".")) {
+        JOptionPane.showMessageDialog(this, "Please enter a valid email address (e.g., user@example.com)", "Invalid Email", JOptionPane.ERROR_MESSAGE);
+        return;
+        }
+        
+        if (contact.length() != 11 || !contact.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, "Contact number must be exactly 11 digits (e.g., 09123456789)", "Invalid Contact", JOptionPane.ERROR_MESSAGE);
+        return;
+        }
+        
+        if (Config.isUserExists(username)) {
+        JOptionPane.showMessageDialog(this, "Username is already taken!", "Error", JOptionPane.WARNING_MESSAGE);
+        return;
+        }
+        
+        if (Config.isEmailExists(email)) {
+        JOptionPane.showMessageDialog(this, "Email is already registered!", "Duplicate Email", JOptionPane.WARNING_MESSAGE);
+        return;
+        }
 
-			// 3. Contact Validation (Must be exactly 11 digits and numeric)
-			if (contact.length() != 11 || !contact.matches("\\d+")) {
-				JOptionPane.showMessageDialog(this, "Contact number must be exactly 11 digits (e.g., 09123456789)", "Invalid Contact", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
+        if (isAdminRequest) {
+            String key = JOptionPane.showInputDialog(this, "Enter Admin Registration Key:", "Authentication", JOptionPane.WARNING_MESSAGE);
+            if (!"Admin123".equals(key)) {
+                JOptionPane.showMessageDialog(this, "Invalid Admin Key!", "Access Denied", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
 
-			// 4. Database Checks
-			if (Config.isUserExists(username)) {
-				JOptionPane.showMessageDialog(this, "Username is already taken!", "Error", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
+        // --- GENERATE CUSTOM ID (OMNI-00-1001) ---
+        String customID = generateNextOMNIId();
 
-			if (Config.isEmailExists(email)) {
-				JOptionPane.showMessageDialog(this, "Email is already registered!", "Duplicate Email", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
+        // Update your Config.registerUser to accept 'customID' as the first parameter
+        boolean success = Config.registerUser(customID, username, password, email, contact, role, status, salary);        
+        if (success) {
+            JOptionPane.showMessageDialog(this, role + " Registered Successfully!");
+            dashboard.showLogin(); 
+        } else {
+            JOptionPane.showMessageDialog(this, "Registration Failed!", "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
-			if (isAdminRequest) {
-				String key = JOptionPane.showInputDialog(this, "Enter Admin Registration Key:", "Authentication", JOptionPane.WARNING_MESSAGE);
-				if (!"Admin123".equals(key)) {
-					JOptionPane.showMessageDialog(this, "Invalid Admin Key!", "Access Denied", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
-			}
-
-			boolean success = Config.registerUser(username, password, email, contact, role, status, salary);        
-			if (success) {
-				JOptionPane.showMessageDialog(this, role + " Registered Successfully!");
-				dashboard.showLogin(); 
-			} else {
-				JOptionPane.showMessageDialog(this, "Registration Failed!", "Database Error", JOptionPane.ERROR_MESSAGE);
-			}
-		}
+    /**
+     * Logic to generate the ID: OMNI-00-1001
+     * Ideally, this should query the DB for the last ID, but here is the logic structure.
+     */
+    private String generateNextOMNIId() {
+        int nextNumber = 1001; // Default start
+        try {
+            // You should have a method in Config that does: 
+            // "SELECT User_ID FROM Users ORDER BY User_ID DESC LIMIT 1"
+            String lastId = Config.getLastUserID(); 
+            if (lastId != null && lastId.startsWith("OMNI-00-")) {
+                String numericPart = lastId.substring(8); // Extract "1001"
+                nextNumber = Integer.parseInt(numericPart) + 1;
+            }
+        } catch (Exception e) {
+            System.err.println("Error generating ID: " + e.getMessage());
+        }
+        return "OMNI-00-" + nextNumber;
+    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -143,8 +169,8 @@ public class RegistrationForm extends javax.swing.JPanel {
         jLabel6.setText("Role:");
         add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 220, 100, 30));
 
-        comboRole.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GYM Manager", "Chef/Cook", "Coach / Instructor", "Bartender", "Receptionist", "Staff" }));
-        comboRole.addActionListener(new java.awt.event.ActionListener() {
+        comboRole.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "GYM Manager", "Coach/Instructor", "Receptionist", "Staff", "Kitchen Assistant", "Event Coordinator" }));
+        comboRole.addActionListener(new java.awt.event.ActionListener() {           
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 comboRoleActionPerformed(evt);
             }
