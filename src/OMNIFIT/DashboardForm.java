@@ -14,8 +14,10 @@ public final class DashboardForm extends javax.swing.JFrame {
     private Services servicesPanel;
     private Members membersPanel;
     private LoginForm loginPanel;
-    private RegistrationForm registerPanel;
+    private Registration1 registerPanel1; // Renamed for clarity
+    private Registration2 registerPanel2; // New Panel
     private Profile profilePanel;    
+    private IDPanel currentIDPanel;
 
     private final int homeOriginalY;
     private String userRole = "Guest";
@@ -48,7 +50,8 @@ public final class DashboardForm extends javax.swing.JFrame {
         servicesPanel = new Services();
         membersPanel = new Members();
         loginPanel = new LoginForm(this);
-        registerPanel = new RegistrationForm(this);
+        registerPanel1 = new Registration1(this);
+        registerPanel2 = new Registration2(this, registerPanel1); // Pass ref to step 1
         profilePanel = new Profile(this);
 
         int x = 220, y = 30, w = 570, h = 350;
@@ -59,12 +62,12 @@ public final class DashboardForm extends javax.swing.JFrame {
         getContentPane().add(servicesPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(membersPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(loginPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-        getContentPane().add(registerPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(registerPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(registerPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
         getContentPane().add(profilePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
 
         getContentPane().setComponentZOrder(Background, getContentPane().getComponentCount() - 1);
         
-        // Refresh UI
         getContentPane().revalidate();
         getContentPane().repaint();
 
@@ -77,84 +80,112 @@ public final class DashboardForm extends javax.swing.JFrame {
         servicesPanel.setVisible(false);
         membersPanel.setVisible(false);
         loginPanel.setVisible(false);
-        registerPanel.setVisible(false);
-        logo.setVisible(true);
+        registerPanel1.setVisible(false);
+        registerPanel2.setVisible(false);
+        logo.setVisible(false);
         ABOUT.setVisible(true);
         profilePanel.setVisible(false); 
         profile.setVisible(false); 
-
-
         btnUser.setVisible(false);
         MEMBERS.setVisible(false);
         SERVICES.setVisible(false);
         MANAGEMENT.setVisible(false);
+        if (currentIDPanel != null) {
+        currentIDPanel.setVisible(false);
+        getContentPane().remove(currentIDPanel); // Optional: removes it from memory
+        currentIDPanel = null; 
     }
 
-		private void showPanel(JPanel panel) {
-			// Only block if login/register are actually visible
-			if (loginPanel.isVisible() || registerPanel.isVisible()) {
-				 if (!userRole.equals("Guest")) {
-					 loginPanel.setVisible(false);
-					 registerPanel.setVisible(false);
-				 } else {
-					 return;
-				 }
-			}
+    getContentPane().revalidate();
+    getContentPane().repaint();   
+    }
+    
+    public void showIDCard(String id, String name, String role, String email, String contact) {
+    hideAllPanels();
 
-			userPanel.setVisible(false);
-			managementPanel.setVisible(false);
-			servicesPanel.setVisible(false);
-			membersPanel.setVisible(false);
-                        profilePanel.setVisible(false);
+    // REMOVE 'IDPanel' from the start of the next line so it uses the class variable
+    currentIDPanel = new IDPanel(this, id, name, role, email, contact); 
+    
+    int x = 220, y = 30, w = 570, h = 350;
+    getContentPane().add(currentIDPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+    getContentPane().setComponentZOrder(currentIDPanel, 0); 
+    currentIDPanel.setVisible(true);
 
-			// REFRESH LOGIC: Check which panel is being shown and reload its data
-			if (panel instanceof User) {
-				((User) panel).loadUserData();
-			} else if (panel instanceof Management) {
-				((Management) panel).loadBookingData();
-			} else if (panel instanceof Members) {
-				((Members) panel).loadMemberData();
-			} else if (panel instanceof Profile) {
-                                ((Profile) panel).loadUserProfile(currentUsername);
-                        }
+    getContentPane().revalidate();
+    getContentPane().repaint();
+}
 
+    private void showPanel(JPanel panel) {
+        if (loginPanel.isVisible() || registerPanel1.isVisible() || registerPanel2.isVisible()) {
+             if (!userRole.equals("Guest")) {
+                 loginPanel.setVisible(false);
+                 registerPanel1.setVisible(false);
+                 registerPanel2.setVisible(false);
+             } else {
+                 return;
+             }
+        }
 
-			panel.setVisible(true);
-			panel.requestFocus(); 
-		}
+        userPanel.setVisible(false);
+        managementPanel.setVisible(false);
+        servicesPanel.setVisible(false);
+        membersPanel.setVisible(false);
+        profilePanel.setVisible(false);
+
+        if (panel instanceof User) {
+            ((User) panel).loadUserData();
+        } else if (panel instanceof Management) {
+            ((Management) panel).loadBookingData();
+        } else if (panel instanceof Members) {
+            ((Members) panel).loadMemberData();
+        } else if (panel instanceof Profile) {
+            ((Profile) panel).loadUserProfile(currentUsername);
+        }
+
+        panel.setVisible(true);
+        panel.requestFocus(); 
+    }
 
     public void showLogin() {
         hideAllPanels();
         loginPanel.setVisible(true);
     }
     
-    public void showRegister() {
+    // Updated Registration Steps
+    public void showRegistrationStep1() {
         hideAllPanels();
-        registerPanel.setVisible(true);
+        registerPanel1.setVisible(true);
     }
 
-	public void loginSuccess(String username, String role) {
-                this.currentUsername = username;
-		this.userRole = role;
-		hideAllPanels();
-                
-                ABOUT.setVisible(false);
-                logo.setVisible(true);
-		MEMBERS.setVisible(true);
-		SERVICES.setVisible(true);
-                profile.setVisible(true); 
-		boolean isAdmin = "Administrator".equalsIgnoreCase(role);
-		
-		MANAGEMENT.setVisible(isAdmin); 
-		btnUser.setVisible(isAdmin);    
-		
-		// Refresh members specifically on login
-		membersPanel.loadMemberData(); 
-		showPanel(membersPanel);
-		
-		getContentPane().revalidate();
-		getContentPane().repaint();
-	}
+    public void showRegistrationStep2() {
+        hideAllPanels();
+        registerPanel2.setVisible(true);
+    }
+    
+    
+
+    public void loginSuccess(String username, String role) {
+        this.currentUsername = username;
+        this.userRole = role;
+        hideAllPanels();
+              
+        loginPanel.setVisible(false);
+        ABOUT.setVisible(false);
+        logo.setVisible(true);
+        MEMBERS.setVisible(true);
+        SERVICES.setVisible(true);
+        profile.setVisible(true); 
+        boolean isAdmin = "Administrator".equalsIgnoreCase(role);
+        
+        MANAGEMENT.setVisible(isAdmin); 
+        btnUser.setVisible(isAdmin);    
+        
+        membersPanel.loadMemberData(); 
+        showPanel(membersPanel);
+        
+        getContentPane().revalidate();
+        getContentPane().repaint();
+    }
 
     // ===== ANIMATION =====
     private javax.swing.ImageIcon getGlowIcon(javax.swing.ImageIcon icon) {

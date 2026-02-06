@@ -1,7 +1,9 @@
 package OMNIFIT;
 
 import Config.Config;
-import javax.swing.JOptionPane;
+import java.awt.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 public class LoginForm extends javax.swing.JPanel {
 
@@ -9,16 +11,105 @@ public class LoginForm extends javax.swing.JPanel {
 
     public LoginForm(DashboardForm parent) {
         this.dashboard = parent;        
-        // Ensure DB is ready for queries
         Config.initializeDB();
         initComponents();
         customInit(); 
     }
 
-    private void customInit() {
+private void customInit() {
         this.setOpaque(false);
+        this.setPreferredSize(new Dimension(500, 500));
+        
+        styleTextField(txtUsername);
+        styleTextField(txtPassword);
+        
+        
+        // Define our theme colors
+        Color primaryColor = new Color(92, 225, 230); // Bright Cyan
+        Color hoverColor = new Color(130, 240, 245);  // Lighter Cyan
+        Color textColor = new Color(20, 60, 80);      // Dark Blue
+        
+        // Setup Login Button
+        btnLogin.setBackground(primaryColor);
+        btnLogin.setForeground(textColor);
+        btnLogin.setFocusPainted(false);
+        btnLogin.setBorder(null);
+        addButtonHoverEffect(btnLogin, primaryColor, hoverColor);
+
+        // Setup Register Button
+        btnRegister.setBackground(primaryColor);
+        btnRegister.setForeground(textColor);
+        btnRegister.setFocusPainted(false);
+        btnRegister.setBorder(null);
+        addButtonHoverEffect(btnRegister, primaryColor, hoverColor);
+        
+        person.setVisible(false);
+        lock.setVisible(false);
+        
+        styleTextField(txtUsername, "/image/person.png");
+        styleTextField(txtPassword, "/image/lock.png");
+        
+        person.setOpaque(false);
+        lock.setOpaque(false);
+        
+        // Layers for icons
+        this.setComponentZOrder(person, 0);
+        this.setComponentZOrder(lock, 0);
+        this.setComponentZOrder(txtUsername, 1);
+        this.setComponentZOrder(txtPassword, 1);
+    }
+        private void styleTextField(JTextField field, String iconPath) {
+        field.setBackground(new Color(174, 179, 184));
+        field.setForeground(Color.WHITE);
+        field.setCaretColor(Color.WHITE);
+        field.setBorder(new EmptyBorder(5, 35, 5, 10));
+        // Get the icon image
+        ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
+        
+        // We override the field's painting to draw the icon inside it
+        field.setUI(new javax.swing.plaf.basic.BasicTextFieldUI() {
+            @Override
+            protected void paintBackground(Graphics g) {
+                super.paintBackground(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Draw icon at X=8, and Y centered (field height is 45, icon is usually 20-30)
+                int y = (field.getHeight() - icon.getIconHeight()) / 2;
+                g2.drawImage(icon.getImage(), 8, y, null);
+            }
+        });
     }
 
+        private void addButtonHoverEffect(JButton button, Color baseColor, Color hoverColor) {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+                button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(baseColor);
+            }
+        });
+    }
+
+    private void styleTextField(JTextField field) {
+        field.setBackground(new Color(30, 45, 60));
+        field.setForeground(Color.WHITE);
+        field.setCaretColor(Color.WHITE);
+        field.setBorder(new EmptyBorder(5, 10, 5, 10));
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.dispose();
+        super.paintComponent(g);
+    }
+    
     private void handleLoginProcess() {
         String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
@@ -28,20 +119,13 @@ public class LoginForm extends javax.swing.JPanel {
             return;
         }
 
-        // Logic: Config.getUserRole should query the Users table 
-        // and return the Role from the Management table linked by Username.
         String role = Config.getUserRole(username, password);
 
         if (role != null) {            
             new Thread(() -> {
-                java.awt.EventQueue.invokeLater(() -> { 
-                    repaint(); 
-                });
-                
+                java.awt.EventQueue.invokeLater(() -> { repaint(); });
                 try { Thread.sleep(300); } catch (InterruptedException e) {}
-
                 java.awt.EventQueue.invokeLater(() -> {
-                    // Success: Passes the role (e.g., "Administrator" or "Chef") to the dashboard
                     dashboard.loginSuccess(username, role); 
                 });
             }).start();
@@ -54,69 +138,74 @@ public class LoginForm extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabel2 = new javax.swing.JLabel();
+        lock = new javax.swing.JLabel();
+        person = new javax.swing.JLabel();
         txtUsername = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
         txtPassword = new javax.swing.JPasswordField();
-        btnGoToRegister = new javax.swing.JButton();
+        btnRegister = new javax.swing.JButton();
         btnLogin = new javax.swing.JButton();
-        jLabel5 = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
 
+        setOpaque(false);
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel2.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
-        jLabel2.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel2.setText("Username:");
-        add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 70, 140, 40));
-        add(txtUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 80, 170, 30));
+        lock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/lock.png"))); // NOI18N
+        add(lock, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 130, 20, 20));
 
-        jLabel3.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
-        jLabel3.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel3.setText("Password:");
-        add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 120, 140, 40));
-        add(txtPassword, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 130, 170, 30));
+        person.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/person.png"))); // NOI18N
+        add(person, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 70, 20, 20));
+        add(txtUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 60, 190, 40));
 
-        btnGoToRegister.setFont(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
-        btnGoToRegister.setText("REGISTER");
-        btnGoToRegister.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
-        btnGoToRegister.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnGoToRegister.addActionListener(new java.awt.event.ActionListener() {
+        txtPassword.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnGoToRegisterActionPerformed(evt);
+                txtPasswordActionPerformed(evt);
             }
         });
-        add(btnGoToRegister, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 250, 160, 40));
+        add(txtPassword, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 120, 190, 40));
 
-        btnLogin.setFont(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
+        btnRegister.setText("REGISTER");
+        btnRegister.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnRegisterActionPerformed(evt);
+            }
+        });
+        add(btnRegister, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 240, 130, 30));
+
         btnLogin.setText("LOGIN");
-        btnLogin.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
-        btnLogin.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnLogin.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnLoginActionPerformed(evt);
             }
         });
-        add(btnLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 200, 160, 40));
+        add(btnLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 200, 130, 30));
 
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/log1.png"))); // NOI18N
-        add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 680, 360));
+        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/LoginB.png"))); // NOI18N
+        jLabel1.setToolTipText("");
+        add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, -10, 600, 380));
     }// </editor-fold>//GEN-END:initComponents
-
-    private void btnGoToRegisterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGoToRegisterActionPerformed
-        dashboard.showRegister();                  
-    }//GEN-LAST:event_btnGoToRegisterActionPerformed
 
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
         handleLoginProcess();
     }//GEN-LAST:event_btnLoginActionPerformed
 
+    private void btnRegisterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegisterActionPerformed
+        dashboard.showRegistrationStep1();
+    }//GEN-LAST:event_btnRegisterActionPerformed
+
+    private void txtPasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPasswordActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtPasswordActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnGoToRegister;
     private javax.swing.JButton btnLogin;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel5;
+    private javax.swing.JButton btnRegister;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel lock;
+    private javax.swing.JLabel person;
     private javax.swing.JPasswordField txtPassword;
     private javax.swing.JTextField txtUsername;
     // End of variables declaration//GEN-END:variables
+    // GEN-FIRST:event_btnUserMouseExited 
+    // TODO add your handling code here: 
+    // }                                    
 }
