@@ -14,8 +14,14 @@ public final class Members extends javax.swing.JPanel {
         initComponents();
         setOpaque(false);
         applyDashboardTheme(); 
-        loadMemberData(); 
         
+        btnSearch.addActionListener(evt -> loadMemberData(searchField.getText()));
+        searchField.addActionListener(evt -> loadMemberData(searchField.getText()));
+        btnRefresh.addActionListener(evt -> {
+            searchField.setText("");
+            loadMemberData();
+        });
+    
         btnAdd.addActionListener(evt -> addMember());
         btnUpdate.addActionListener(evt -> updateMember());
         btnDelete.addActionListener(evt -> deleteMember());

@@ -13,8 +13,13 @@ public final class Management extends javax.swing.JPanel {
     public Management() {
         initComponents();
         setOpaque(false);
-        applyDashboardTheme(); 
-        loadBookingData();
+        applyDashboardTheme();         
+        btnSearch.addActionListener(e -> loadBookingData(searchField.getText()));
+        searchField.addActionListener(e -> loadBookingData(searchField.getText()));
+        btnRefresh.addActionListener(e -> {
+            searchField.setText("");
+            loadBookingData();
+        });
     }
 
     private void applyDashboardTheme() {
@@ -98,8 +103,7 @@ private void styleButtons() {
                      "GROUP BY m.Staffid, m.Username, m.Role_Position, m.Salary_PayRate, m.WorkEmail";
         
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            sql = "SELECT * FROM (" + sql + ") t WHERE Username LIKE ? OR Role LIKE ? OR WorkEmail LIKE ?";
-        }
+        sql = "SELECT * FROM (" + sql + ") t WHERE Username LIKE ? OR Role_Position LIKE ? OR WorkEmail LIKE ?";        }
 
         try (Connection conn = Config.connect();
              PreparedStatement pst = conn.prepareStatement(sql)) {

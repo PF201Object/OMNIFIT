@@ -16,6 +16,13 @@ public final class Services extends javax.swing.JPanel {
         applyDashboardTheme(); 
         loadMenuData();
         
+        btnSearch.addActionListener(evt -> loadMenuData(searchField.getText()));
+        btnRefresh.addActionListener(evt -> {
+            searchField.setText("");
+        });
+        
+        searchField.addActionListener(evt -> loadMenuData(searchField.getText()));
+        
         btnAdd.addActionListener(evt -> addService());
         btnUpdate.addActionListener(evt -> updateService());
         btnDelete.addActionListener(evt -> deleteService());

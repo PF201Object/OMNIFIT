@@ -19,6 +19,12 @@ public class User extends javax.swing.JPanel {
         applyDashboardTheme(); 
         loadUserData();   
         setupTableClick();
+        
+        btnSearch.addActionListener(e -> loadUserData(searchField.getText()));
+        btnRefresh.addActionListener(e -> {
+        searchField.setText("");
+        loadUserData();
+    });
     }
 
     private void applyDashboardTheme() {
