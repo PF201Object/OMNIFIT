@@ -8,6 +8,7 @@ import javax.swing.Timer;
 
 public final class DashboardForm extends javax.swing.JFrame {
     
+    private Timer animationTimer; // Declare this as a class member variable
     private javax.swing.Icon originalIcon;
     private User userPanel;
     private Management managementPanel;
@@ -82,8 +83,6 @@ public final class DashboardForm extends javax.swing.JFrame {
         loginPanel.setVisible(false);
         registerPanel1.setVisible(false);
         registerPanel2.setVisible(false);
-        logo.setVisible(false);
-        ABOUT.setVisible(true);
         profilePanel.setVisible(false); 
         profile.setVisible(false); 
         btnUser.setVisible(false);
@@ -170,8 +169,6 @@ public final class DashboardForm extends javax.swing.JFrame {
         hideAllPanels();
               
         loginPanel.setVisible(false);
-        ABOUT.setVisible(false);
-        logo.setVisible(true);
         MEMBERS.setVisible(true);
         SERVICES.setVisible(true);
         profile.setVisible(true); 
@@ -202,38 +199,19 @@ public final class DashboardForm extends javax.swing.JFrame {
     float[] offsets = new float[4];
     java.awt.image.RescaleOp op = new java.awt.image.RescaleOp(scales, offsets, null);
     return new javax.swing.ImageIcon(op.filter(bi, null));
+    }  
+    
+private void runAnimation(javax.swing.JButton btn, boolean enter) {
+    if (enter) {
+        btn.setForeground(new Color(255, 102, 0)); 
+        // btn.setBackground(new Color(60, 60, 70)); // Uncomment if you want background change too
+    } else {
+        btn.setForeground(Color.WHITE);
+        // btn.setBackground(new Color(45, 45, 55));
     }
-        
-    private void applyGlowEffect(javax.swing.JButton btn, boolean enter) {
-        if (enter) {
-            // Save original as a property of the button itself
-            btn.putClientProperty("origIcon", btn.getIcon());
-            btn.setIcon(getGlowIcon((javax.swing.ImageIcon)btn.getIcon()));
-            runAnimation(btn, true);
-        } else {
-            // Retrieve original from the button property
-            javax.swing.Icon orig = (javax.swing.Icon)btn.getClientProperty("origIcon");
-            if (orig != null) {
-                btn.setIcon(orig);
-            }
-            runAnimation(btn, false);
-        }
-    }
-        
-    private void runAnimation(javax.swing.JButton btn, boolean enter) {
-        btn.setForeground(enter ? new Color(0, 153, 255) : Color.WHITE);
+}
 
-        Timer timer = new Timer(10, e -> {
-            if (enter && btn.getY() > homeOriginalY - 6) {
-                btn.setLocation(btn.getX(), btn.getY() - 1);
-            } else if (!enter && btn.getY() < homeOriginalY) {
-                btn.setLocation(btn.getX(), btn.getY() + 1);
-            } else {
-                ((Timer) e.getSource()).stop();
-            }
-        });
-        timer.start();
-    }
+// Add this method to your DashboardForm class to handle the hover events:
 
     // ===== BUTTON ACTIONS =====
     private void MEMBERSActionPerformed(java.awt.event.ActionEvent evt) {
@@ -275,8 +253,6 @@ public final class DashboardForm extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        logo = new javax.swing.JLabel();
-        ABOUT = new javax.swing.JButton();
         btnUser = new javax.swing.JButton();
         profile = new javax.swing.JButton();
         btnExit = new javax.swing.JButton();
@@ -290,32 +266,7 @@ public final class DashboardForm extends javax.swing.JFrame {
         setResizable(false);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/LOGO.png"))); // NOI18N
-        getContentPane().add(logo, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 100, 260, 220));
-
-        ABOUT.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
-        ABOUT.setForeground(new java.awt.Color(255, 255, 255));
-        ABOUT.setText("ABOUT US");
-        ABOUT.setBorderPainted(false);
-        ABOUT.setContentAreaFilled(false);
-        ABOUT.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        ABOUT.setFocusPainted(false);
-        ABOUT.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                ABOUTMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                ABOUTMouseExited(evt);
-            }
-        });
-        ABOUT.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ABOUTActionPerformed(evt);
-            }
-        });
-        getContentPane().add(ABOUT, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 160, 40));
-
-        btnUser.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
+        btnUser.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         btnUser.setForeground(new java.awt.Color(255, 255, 255));
         btnUser.setText("USER PANEL");
         btnUser.setBorderPainted(false);
@@ -335,7 +286,7 @@ public final class DashboardForm extends javax.swing.JFrame {
                 btnUserActionPerformed(evt);
             }
         });
-        getContentPane().add(btnUser, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 10, 180, 40));
+        getContentPane().add(btnUser, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 230, 160, 40));
 
         profile.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         profile.setForeground(new java.awt.Color(255, 255, 255));
@@ -357,11 +308,11 @@ public final class DashboardForm extends javax.swing.JFrame {
                 profileActionPerformed(evt);
             }
         });
-        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 0, 70, 50));
+        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, 70, 50));
 
-        btnExit.setFont(new java.awt.Font("Serif", 1, 24)); // NOI18N
+        btnExit.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         btnExit.setForeground(new java.awt.Color(255, 0, 0));
-        btnExit.setText("X");
+        btnExit.setText("CLOSE");
         btnExit.setBorderPainted(false);
         btnExit.setContentAreaFilled(false);
         btnExit.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -371,9 +322,9 @@ public final class DashboardForm extends javax.swing.JFrame {
                 btnExitActionPerformed(evt);
             }
         });
-        getContentPane().add(btnExit, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 0, 50, 40));
+        getContentPane().add(btnExit, new org.netbeans.lib.awtextra.AbsoluteConstraints(720, 390, 130, 40));
 
-        MEMBERS.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
+        MEMBERS.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         MEMBERS.setForeground(new java.awt.Color(255, 255, 255));
         MEMBERS.setText("MEMBERS");
         MEMBERS.setBorderPainted(false);
@@ -393,9 +344,9 @@ public final class DashboardForm extends javax.swing.JFrame {
                 MEMBERSActionPerformed(evt);
             }
         });
-        getContentPane().add(MEMBERS, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 130, 40));
+        getContentPane().add(MEMBERS, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 110, 140, 40));
 
-        SERVICES.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
+        SERVICES.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         SERVICES.setForeground(new java.awt.Color(255, 255, 255));
         SERVICES.setText("SERVICES");
         SERVICES.setBorderPainted(false);
@@ -415,9 +366,9 @@ public final class DashboardForm extends javax.swing.JFrame {
                 SERVICESActionPerformed(evt);
             }
         });
-        getContentPane().add(SERVICES, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 10, 130, 40));
+        getContentPane().add(SERVICES, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 150, 140, 40));
 
-        MANAGEMENT.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
+        MANAGEMENT.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         MANAGEMENT.setForeground(new java.awt.Color(255, 255, 255));
         MANAGEMENT.setText("MANAGEMENT");
         MANAGEMENT.setBorderPainted(false);
@@ -437,7 +388,7 @@ public final class DashboardForm extends javax.swing.JFrame {
                 MANAGEMENTActionPerformed(evt);
             }
         });
-        getContentPane().add(MANAGEMENT, new org.netbeans.lib.awtextra.AbsoluteConstraints(230, 10, 180, 40));
+        getContentPane().add(MANAGEMENT, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 190, 180, 40));
 
         Background.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/OmniDash.png"))); // NOI18N
         getContentPane().add(Background, new org.netbeans.lib.awtextra.AbsoluteConstraints(-270, 0, 1110, 430));
@@ -457,18 +408,6 @@ public final class DashboardForm extends javax.swing.JFrame {
     private void btnUserActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUserActionPerformed
         showPanel(userPanel);
     }//GEN-LAST:event_btnUserActionPerformed
-
-    private void ABOUTMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_ABOUTMouseEntered
-        runAnimation(ABOUT, true);    
-    }//GEN-LAST:event_ABOUTMouseEntered
-
-    private void ABOUTMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_ABOUTMouseExited
-        runAnimation(ABOUT, false);
-    }//GEN-LAST:event_ABOUTMouseExited
-
-    private void ABOUTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ABOUTActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_ABOUTActionPerformed
 
     private void profileMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_profileMouseEntered
     originalIcon = profile.getIcon(); 
@@ -493,14 +432,12 @@ public final class DashboardForm extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton ABOUT;
     private javax.swing.JLabel Background;
     private javax.swing.JButton MANAGEMENT;
     private javax.swing.JButton MEMBERS;
     private javax.swing.JButton SERVICES;
     private javax.swing.JButton btnExit;
     private javax.swing.JButton btnUser;
-    private javax.swing.JLabel logo;
     private javax.swing.JButton profile;
     // End of variables declaration//GEN-END:variables
 }

@@ -29,7 +29,7 @@ public class Registration2 extends javax.swing.JPanel {
         homeOriginalY = btnMale.getY();
         
         // Setup visual style for all interaction buttons
-        JButton[] selectionButtons = {btnMale, btnFemale, btnManager, btnCoach, btnRecep, btnStaff, btnBackToStep1};
+        JButton[] selectionButtons = {btnMale, btnFemale, btnBackToStep1};
         for (JButton btn : selectionButtons) {
             btn.setContentAreaFilled(false);
             btn.setBorderPainted(false);
@@ -166,20 +166,13 @@ public class Registration2 extends javax.swing.JPanel {
         btnFemale.setBorderPainted(false);
     }   
 
-    private void selectRole(String role, JButton source) {
-        this.selectedRole = role;
-        JButton[] roles = {btnManager, btnCoach, btnRecep, btnStaff}; 
-        for(JButton b : roles) b.setForeground(Color.BLACK);
-        source.setForeground(new Color(0, 102, 204));
-    }
-
     private void handleRegistration() {
         if (selectedGender.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please select a Gender!", "Gender Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (selectedRole.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select a Role!", "Role Required", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please select a Position!", "Position Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -374,17 +367,29 @@ public class Registration2 extends javax.swing.JPanel {
     }//GEN-LAST:event_btnFemaleActionPerformed
 
     private void btnRecepActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepActionPerformed
-        // TODO add your handling code here:
+selectedRole = "GYM Manager";
+    // Optional: Add visual feedback so the user knows it's selected
+    System.out.println("Role selected: " + selectedRole);
     }//GEN-LAST:event_btnRecepActionPerformed
 
     private void btnStaffActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStaffActionPerformed
-        // TODO add your handling code here:
+selectedRole = "GYM Manager";
+    // Optional: Add visual feedback so the user knows it's selected
+    System.out.println("Role selected: " + selectedRole);
     }//GEN-LAST:event_btnStaffActionPerformed
 
+    private void btnCoachActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCoachActionPerformed
+selectedRole = "GYM Manager";
+    // Optional: Add visual feedback so the user knows it's selected
+    System.out.println("Role selected: " + selectedRole);
+    }//GEN-LAST:event_btnCoachActionPerformed
 
-    // (Remaining ActionListeners for Manager, Coach, etc. remain as you had them)
-    private void btnManagerActionPerformed(java.awt.event.ActionEvent evt) { selectRole("GYM Manager", btnManager); }
-    private void btnCoachActionPerformed(java.awt.event.ActionEvent evt) { selectRole("Coach/Instructor", btnCoach); }
+    private void btnManagerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnManagerActionPerformed
+selectedRole = "GYM Manager";
+    // Optional: Add visual feedback so the user knows it's selected
+    System.out.println("Role selected: " + selectedRole);
+    }//GEN-LAST:event_btnManagerActionPerformed
+
 
     
     private void btnFinalRegisterActionPerformed(java.awt.event.ActionEvent evt) { handleRegistration(); }
