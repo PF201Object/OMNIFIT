@@ -23,6 +23,7 @@ public class Config {
             + "Email TEXT NOT NULL UNIQUE,"
             + "Contact_No TEXT,"
             + "Gender TEXT," 
+            + "Role TEXT DEFAULT 'User',"
             + "Members_Status TEXT DEFAULT 'Active',"
             + "Profile_Pic VARCHAR(255));";
 
@@ -48,18 +49,15 @@ public class Config {
         // 4. Services Table Definition
         String servicesTable = "CREATE TABLE IF NOT EXISTS Services ("
                 + "S_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "Service_Name TEXT,"
+                + "Service_Name TEXT NOT NULL,"
                 + "Service_Type TEXT,"
-                + "Payment_Status REAL DEFAULT 0.0,"
-                + "Staff_Assigned TEXT," 
-                + "Member_ID INTEGER,"    
-                + "FOREIGN KEY (Staff_Assigned) REFERENCES Management(Username),"
-                + "FOREIGN KEY (Member_ID) REFERENCES Members(M_ID));";
+                + "Fee REAL DEFAULT 0.0," 
+                + "Staff_Assigned TEXT,"    
+                + "FOREIGN KEY (Staff_Assigned) REFERENCES Management(Username));";
 
         // 5. Payments Table for Members
         String paymentsTable = "CREATE TABLE IF NOT EXISTS Payments ("
                 + "Payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "Member_ID INTEGER,"
                 + "Amount REAL DEFAULT 0.0,"
                 + "Payment_Date TEXT,"
                 + "Payment_Method TEXT,"
@@ -124,26 +122,28 @@ public class Config {
             // --- MIGRATION SCRIPTS ---
             // Add Gender column if not exists
             try {
-                stmt.execute("ALTER TABLE Users ADD COLUMN Gender TEXT;");
-                System.out.println("Migration: Gender column added to Users table.");
-            } catch (SQLException e) {
-                if (!e.getMessage().contains("duplicate column name")) {
-                    System.err.println("Migration Note: " + e.getMessage());
-                }
-            }
+                        // This line specifically adds the Fee column you're missing
+                        stmt.execute("ALTER TABLE Services ADD COLUMN Fee REAL DEFAULT 0.0;");
+                        System.out.println("Migration: Fee column added to Services table.");
+                    } catch (SQLException e) {
+                        // If the column already exists, it will throw an error; we ignore it.
+                        if (!e.getMessage().contains("duplicate column name")) {
+                            System.err.println("Migration Error: " + e.getMessage());
+                        }
+                    }
             
             // Add indexes for better performance
             try {
                 stmt.execute("CREATE INDEX IF NOT EXISTS idx_payments_member ON Payments(Member_ID);");
                 stmt.execute("CREATE INDEX IF NOT EXISTS idx_payroll_staff ON Payroll(Staff_ID);");
                 stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_date ON Transactions(Transaction_Date);");
-                stmt.execute("CREATE INDEX IF NOT EXISTS idx_services_member ON Services(Member_ID);");
                 System.out.println("Indexes created successfully.");
             } catch (SQLException e) {
                 System.err.println("Index creation note: " + e.getMessage());
             }
             
-            setupDefaultAdmin(); 
+            setupDefaultAdmin();
+            setupDefaultServices();
             setupSampleData(); // Optional: Add sample data for testing
             
         } catch (SQLException e) {
@@ -253,7 +253,50 @@ public class Config {
             System.err.println("Payroll Error: " + e.getMessage());
             return false;
         }
+        
+        
     }
+    
+    private static void setupDefaultServices() {
+    String checkServices = "SELECT COUNT(*) FROM Services"; 
+    String insertService = "INSERT INTO Services (Service_Name, Service_Type, Fee) VALUES (?, ?, ?)";
+
+    try (Connection conn = connect(); 
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(checkServices)) {
+        
+        if (rs.next() && rs.getInt(1) == 0) {
+            try (PreparedStatement pstmt = conn.prepareStatement(insertService)) {
+                
+                // --- Membership Access ---
+                addServiceEntry(pstmt, "Daily Pass", "Gym Access", 100.0);
+                addServiceEntry(pstmt, "Regular", "Membership", 800.0);
+                addServiceEntry(pstmt, "Premium", "Membership", 1500.0);
+                addServiceEntry(pstmt, "VIP", "Membership", 2500.0);
+
+                // --- Personal Training ---
+                addServiceEntry(pstmt, "Single Session", "Personal Training", 800.0);
+                addServiceEntry(pstmt, "Monthly Package", "Personal Training", 5000.0);
+
+                // --- Group Classes ---
+                addServiceEntry(pstmt, "Zumba", "Group Class", 150.0);
+                addServiceEntry(pstmt, "Yoga", "Group Class", 150.0);
+
+                System.out.println("All Default Gym Services (Memberships, PT, and Classes) added.");
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("Error setting up default services: " + e.getMessage());
+    }
+}
+
+// Small helper to keep the code clean and prevent repetition
+private static void addServiceEntry(PreparedStatement pstmt, String name, String type, double fee) throws SQLException {
+    pstmt.setString(1, name);
+    pstmt.setString(2, type);
+    pstmt.setDouble(3, fee);
+    pstmt.executeUpdate();
+}
 
     // New method: Record Transaction
     private static void recordTransaction(String type, double amount, int memberId, int staffId, 

@@ -86,94 +86,83 @@ public final class Services extends javax.swing.JPanel {
     }
 
     public void loadMenuData(String searchTerm) {
-        String[] columnNames = {"S_ID", "Service Name", "Type", "Fee", "Assigned Staff", "Member ID", "Payment Status"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
-        };
+    // UPDATED: Removed Member ID and Status headers
+    String[] columnNames = {"S_ID", "Service Name", "Type", "Fee", "Assigned Staff"};
+    DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) { return false; }
+    };
 
-        String sql = "SELECT s.S_ID, s.Service_Name, s.Service_Type, s.Payment_Status as Fee, " +
-                     "s.Staff_Assigned, s.Member_ID, " +
-                     "COALESCE(p.Payment_Status, 'Pending') as Payment_Status " +
-                     "FROM Services s " +
-                     "LEFT JOIN Payments p ON s.Member_ID = p.Member_ID";
+    // UPDATED: Fixed SQL (removed trailing comma and old columns)
+    String sql = "SELECT S_ID, Service_Name, Service_Type, Fee, Staff_Assigned FROM Services";
+    
+    if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+        sql += " WHERE Service_Name LIKE ? OR Staff_Assigned LIKE ? OR Service_Type LIKE ?";
+    }
+
+    try (Connection conn = Config.connect();
+         PreparedStatement pst = conn.prepareStatement(sql)) {
         
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            sql += " WHERE s.Service_Name LIKE ? OR s.Staff_Assigned LIKE ?";
+            String pattern = "%" + searchTerm + "%";
+            pst.setString(1, pattern);
+            pst.setString(2, pattern);
+            pst.setString(3, pattern);
         }
 
+        try (ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("S_ID"),
+                    rs.getString("Service_Name"),
+                    rs.getString("Service_Type"),
+                    "₱ " + String.format("%.2f", rs.getDouble("Fee")), // Added currency formatting
+                    rs.getString("Staff_Assigned")
+                });
+            }
+        }
+        tblMenu.setModel(model);
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Database Error: " + e.getMessage());
+    }
+}
+
+private void addService() {
+    JTextField nameField = new JTextField();
+    JComboBox<String> typeBox = new JComboBox<>(new String[]{"Gym Access", "Membership", "Personal Training", "Group Class"});
+    JTextField feeField = new JTextField();
+    JTextField staffField = new JTextField();
+
+    // UPDATED: Removed memberIdField from the message array
+    Object[] message = {
+        "Service Name:", nameField,
+        "Service Type:", typeBox,
+        "Fee (Number only):", feeField,
+        "Assigned Staff (Username):", staffField
+    };
+
+    int option = JOptionPane.showConfirmDialog(this, message, "Add New Service", JOptionPane.OK_CANCEL_OPTION);
+    if (option == JOptionPane.OK_OPTION) {
+        // UPDATED: SQL shortened to 4 parameters
+        String sql = "INSERT INTO Services (Service_Name, Service_Type, Fee, Staff_Assigned) VALUES (?, ?, ?, ?)";
+        
         try (Connection conn = Config.connect();
              PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, nameField.getText());
+            pst.setString(2, typeBox.getSelectedItem().toString());
+            pst.setDouble(3, Double.parseDouble(feeField.getText()));
+            pst.setString(4, staffField.getText());
             
-            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-                String pattern = "%" + searchTerm + "%";
-                pst.setString(1, pattern);
-                pst.setString(2, pattern);
-            }
-
-            try (ResultSet rs = pst.executeQuery()) {
-                while (rs.next()) {
-                    model.addRow(new Object[]{
-                        rs.getInt("S_ID"),
-                        rs.getString("Service_Name"),
-                        rs.getString("Service_Type"),
-                        "₱ " + String.format("%.2f", rs.getDouble("Fee")),
-                        rs.getString("Staff_Assigned"),
-                        rs.getInt("Member_ID"),
-                        rs.getString("Payment_Status")
-                    });
-                }
-            }
-            tblMenu.setModel(model);
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Database Error: " + e.getMessage());
+            pst.executeUpdate();
+            loadMenuData(); // Refresh table
+            JOptionPane.showMessageDialog(this, "Service added successfully!");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
     }
+}
 
-    private void addService() {
-        JTextField nameField = new JTextField();
-        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Personal Training", "Group Class", "Nutrition", "Recovery"});
-        JTextField feeField = new JTextField();
-        JTextField staffField = new JTextField();
-        JTextField memberIdField = new JTextField();
-
-        Object[] message = {
-            "Service Name:", nameField,
-            "Service Type:", typeBox,
-            "Fee:", feeField,
-            "Assigned Staff:", staffField,
-            "Member ID:", memberIdField
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, message, "Add New Service", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            String sql = "INSERT INTO Services (Service_Name, Service_Type, Payment_Status, " +
-                        "Staff_Assigned, Member_ID) VALUES (?, ?, ?, ?, ?)";
-            
-            try (Connection conn = Config.connect();
-                 PreparedStatement pst = conn.prepareStatement(sql)) {
-                
-                pst.setString(1, nameField.getText());
-                pst.setString(2, typeBox.getSelectedItem().toString());
-                pst.setDouble(3, Double.parseDouble(feeField.getText()));
-                pst.setString(4, staffField.getText());
-                pst.setInt(5, Integer.parseInt(memberIdField.getText()));
-                
-                pst.executeUpdate();
-                loadMenuData();
-                JOptionPane.showMessageDialog(this, "Service added successfully!");
-                
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error adding service: " + e.getMessage());
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid number format");
-            }
-        }
-    }
-
-    private void updateService() {
+private void updateService() {
         int selectedRow = tblMenu.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Please select a service to update");
@@ -185,28 +174,23 @@ public final class Services extends javax.swing.JPanel {
         String type = (String) tblMenu.getValueAt(selectedRow, 2);
         String feeStr = ((String) tblMenu.getValueAt(selectedRow, 3)).replace("₱ ", "");
         String staff = (String) tblMenu.getValueAt(selectedRow, 4);
-        int memberId = (int) tblMenu.getValueAt(selectedRow, 5);
 
         JTextField nameField = new JTextField(name);
-        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Personal Training", "Group Class", "Nutrition", "Recovery"});
+        JComboBox<String> typeBox = new JComboBox<>(new String[]{"Gym Access", "Membership", "Personal Training", "Group Class"});
         typeBox.setSelectedItem(type);
         JTextField feeField = new JTextField(feeStr);
         JTextField staffField = new JTextField(staff);
-        JTextField memberIdField = new JTextField(String.valueOf(memberId));
 
         Object[] message = {
             "Service Name:", nameField,
             "Service Type:", typeBox,
             "Fee:", feeField,
-            "Assigned Staff:", staffField,
-            "Member ID:", memberIdField
+            "Assigned Staff:", staffField
         };
 
-        int option = JOptionPane.showConfirmDialog(this, message, "Update Service", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
+        int option = JOptionPane.showConfirmDialog(this, message, "Update Service", JOptionPane.OK_CANCEL_OPTION);
         if (option == JOptionPane.OK_OPTION) {
-            String sql = "UPDATE Services SET Service_Name=?, Service_Type=?, Payment_Status=?, " +
-                        "Staff_Assigned=?, Member_ID=? WHERE S_ID=?";
+            String sql = "UPDATE Services SET Service_Name=?, Service_Type=?, Fee=?, Staff_Assigned=? WHERE S_ID=?";
             
             try (Connection conn = Config.connect();
                  PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -215,22 +199,19 @@ public final class Services extends javax.swing.JPanel {
                 pst.setString(2, typeBox.getSelectedItem().toString());
                 pst.setDouble(3, Double.parseDouble(feeField.getText()));
                 pst.setString(4, staffField.getText());
-                pst.setInt(5, Integer.parseInt(memberIdField.getText()));
-                pst.setInt(6, id);
+                pst.setInt(5, id);
                 
                 pst.executeUpdate();
                 loadMenuData();
                 JOptionPane.showMessageDialog(this, "Service updated successfully!");
                 
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error updating service: " + e.getMessage());
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid number format");
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error updating: " + e.getMessage());
             }
         }
     }
 
-    private void deleteService() {
+private void deleteService() {
         int selectedRow = tblMenu.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Please select a service to delete");
@@ -246,75 +227,13 @@ public final class Services extends javax.swing.JPanel {
             
         if (confirm == JOptionPane.YES_OPTION) {
             String sql = "DELETE FROM Services WHERE S_ID=?";
-            
             try (Connection conn = Config.connect();
                  PreparedStatement pst = conn.prepareStatement(sql)) {
-                
                 pst.setInt(1, id);
                 pst.executeUpdate();
                 loadMenuData();
-                JOptionPane.showMessageDialog(this, "Service deleted successfully!");
-                
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error deleting service: " + e.getMessage());
-            }
-        }
-    }
-
-    private void processServicePayment() {
-        int selectedRow = tblMenu.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a service for payment");
-            return;
-        }
-
-        int serviceId = (int) tblMenu.getValueAt(selectedRow, 0);
-        int memberId = (int) tblMenu.getValueAt(selectedRow, 5);
-        String serviceName = (String) tblMenu.getValueAt(selectedRow, 1);
-        String feeStr = ((String) tblMenu.getValueAt(selectedRow, 3)).replace("₱ ", "");
-        double amount = Double.parseDouble(feeStr);
-
-        JTextField amountField = new JTextField(String.valueOf(amount));
-        JComboBox<String> methodBox = new JComboBox<>(new String[]{"Cash", "Card", "Bank Transfer"});
-        JTextField dateField = new JTextField(new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
-
-        Object[] message = {
-            "Service: " + serviceName,
-            "Member ID: " + memberId,
-            "Amount:", amountField,
-            "Payment Method:", methodBox,
-            "Payment Date:", dateField
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, message, "Process Service Payment", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            String sql = "INSERT INTO Payments (Member_ID, Amount, Payment_Date, Payment_Method, Payment_Status) " +
-                        "VALUES (?, ?, ?, ?, 'Paid')";
-            
-            try (Connection conn = Config.connect();
-                 PreparedStatement pst = conn.prepareStatement(sql)) {
-                
-                pst.setInt(1, memberId);
-                pst.setDouble(2, Double.parseDouble(amountField.getText()));
-                pst.setString(3, dateField.getText());
-                pst.setString(4, methodBox.getSelectedItem().toString());
-                
-                pst.executeUpdate();
-                
-                // Update service payment status if needed
-                String updateSql = "UPDATE Services SET Payment_Status = ? WHERE S_ID = ?";
-                try (PreparedStatement updatePst = conn.prepareStatement(updateSql)) {
-                    updatePst.setDouble(1, amount);
-                    updatePst.setInt(2, serviceId);
-                    updatePst.executeUpdate();
-                }
-                
-                loadMenuData();
-                JOptionPane.showMessageDialog(this, "Service payment processed successfully!");
-                
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error processing payment: " + e.getMessage());
+                JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
             }
         }
     }
