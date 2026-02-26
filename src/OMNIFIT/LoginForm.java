@@ -19,15 +19,15 @@ public class LoginForm extends javax.swing.JPanel {
 private void customInit() {
         this.setOpaque(false);
         this.setPreferredSize(new Dimension(500, 500));
-        
-        styleTextField(txtUsername);
-        styleTextField(txtPassword);
-        
+                
         
         // Define our theme colors
         Color primaryColor = new Color(92, 225, 230); // Bright Cyan
         Color hoverColor = new Color(130, 240, 245);  // Lighter Cyan
         Color textColor = new Color(20, 60, 80);      // Dark Blue
+        
+        addPlaceholder(txtUsername, "Username or Email");
+        addPlaceholder(txtPassword1, "Password");
         
         // Setup Login Button
         btnLogin.setBackground(primaryColor);
@@ -43,43 +43,94 @@ private void customInit() {
         btnRegister.setBorder(null);
         addButtonHoverEffect(btnRegister, primaryColor, hoverColor);
         
-        person.setVisible(false);
-        lock.setVisible(false);
+        isPasswordVisible = false; 
+        eyeToggle.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
-        styleTextField(txtUsername, "/image/person.png");
-        styleTextField(txtPassword, "/image/lock.png");
-        
+        person.setVisible(true);
+        lock.setVisible(true);
+                
         person.setOpaque(false);
         lock.setOpaque(false);
         
+        setupPasswordToggle();
+        
         // Layers for icons
+        this.setComponentZOrder(eyeToggle, 0);
+        this.setComponentZOrder(Border, 1);
         this.setComponentZOrder(person, 0);
         this.setComponentZOrder(lock, 0);
         this.setComponentZOrder(txtUsername, 1);
-        this.setComponentZOrder(txtPassword, 1);
-    }
-        private void styleTextField(JTextField field, String iconPath) {
-        field.setBackground(new Color(174, 179, 184));
-        field.setForeground(Color.WHITE);
-        field.setCaretColor(Color.WHITE);
-        field.setBorder(new EmptyBorder(5, 35, 5, 10));
-        // Get the icon image
-        ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
-        
-        // We override the field's painting to draw the icon inside it
-        field.setUI(new javax.swing.plaf.basic.BasicTextFieldUI() {
-            @Override
-            protected void paintBackground(Graphics g) {
-                super.paintBackground(g);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Draw icon at X=8, and Y centered (field height is 45, icon is usually 20-30)
-                int y = (field.getHeight() - icon.getIconHeight()) / 2;
-                g2.drawImage(icon.getImage(), 8, y, null);
-            }
-        });
     }
 
+    public void clearFields() {
+    // Reset Username
+    txtUsername.setText("Username or Email");
+    txtUsername.setForeground(Color.WHITE);
+
+    // Reset Password
+    txtPassword1.setText("Password");
+    txtPassword1.setForeground(Color.WHITE);
+    txtPassword1.setEchoChar((char) 0); // Make the placeholder visible
+    
+    // Reset the visibility flag
+    isPasswordVisible = false;
+}
+
+        private boolean isPasswordVisible = false;
+         
+    
+private void setupPasswordToggle() {
+    eyeToggle.addMouseListener(new java.awt.event.MouseAdapter() {
+        @Override
+        public void mouseClicked(java.awt.event.MouseEvent evt) {
+            // Ignore if it's just the placeholder
+            if (new String(txtPassword1.getPassword()).equals("Password")) return;
+
+            if (isPasswordVisible) {
+                txtPassword1.setEchoChar('●');
+                isPasswordVisible = false;
+                // You can swap the icon here if you have a "Hidden" version
+                // eyeToggle.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/EyeHidden.png")));
+            } else {
+                txtPassword1.setEchoChar((char) 0);
+                isPasswordVisible = true;
+                // eyeToggle.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/EyeToggle.png")));
+            }
+        }
+    });
+}
+
+private void addPlaceholder(final JTextField field, final String placeholder) {
+    field.setText(placeholder);
+    field.setForeground(Color.WHITE); 
+
+    if (field instanceof JPasswordField) {
+        ((JPasswordField) field).setEchoChar((char) 0);
+    }
+
+    field.addFocusListener(new java.awt.event.FocusAdapter() {
+        @Override
+        public void focusGained(java.awt.event.FocusEvent evt) {
+            if (field.getText().equals(placeholder)) {
+                field.setText("");
+                if (field instanceof JPasswordField) {
+                    ((JPasswordField) field).setEchoChar('●');
+                    isPasswordVisible = false;
+                }
+            }
+        }
+
+        @Override
+        public void focusLost(java.awt.event.FocusEvent evt) {
+            if (field.getText().isEmpty()) {
+                field.setText(placeholder);
+                if (field instanceof JPasswordField) {
+                    ((JPasswordField) field).setEchoChar((char) 0);
+                }
+            }
+        }
+    });
+}
         private void addButtonHoverEffect(JButton button, Color baseColor, Color hoverColor) {
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -111,26 +162,41 @@ private void customInit() {
     }
     
     private void handleLoginProcess() {
-        String username = txtUsername.getText().trim();
-        String password = new String(txtPassword.getPassword());
+        // 'identifier' can now be either the Username or the Email address
+        final String identifier = txtUsername.getText().trim();
+        String password = new String(txtPassword1.getPassword());
 
-        if (username.isEmpty() || password.isEmpty()) {
+        if (identifier.isEmpty() || password.isEmpty()) {
+            
             JOptionPane.showMessageDialog(this, "Please enter credentials!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        String role = Config.getUserRole(username, password);
+        // Call the updated Config method
+        final String role = Config.getUserRole(identifier, password);
 
         if (role != null) {            
-            new Thread(() -> {
-                java.awt.EventQueue.invokeLater(() -> { repaint(); });
-                try { Thread.sleep(300); } catch (InterruptedException e) {}
-                java.awt.EventQueue.invokeLater(() -> {
-                    dashboard.loginSuccess(username, role); 
-                });
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    java.awt.EventQueue.invokeLater(new Runnable() {
+                        @Override
+                        public void run() { repaint(); }
+                    });
+
+                    try { Thread.sleep(300); } catch (InterruptedException e) {}
+
+                    java.awt.EventQueue.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Pass the login details to the dashboard
+                            dashboard.loginSuccess(identifier, role); 
+                        }
+                    });
+                }
             }).start();
         } else {
-            JOptionPane.showMessageDialog(this, "Invalid Username or Password!", "Login Failed", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Invalid Username/Email or Password!", "Login Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -138,10 +204,13 @@ private void customInit() {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        eyeToggle = new javax.swing.JLabel();
         lock = new javax.swing.JLabel();
         person = new javax.swing.JLabel();
+        txtPassword1 = new javax.swing.JPasswordField();
         txtUsername = new javax.swing.JTextField();
-        txtPassword = new javax.swing.JPasswordField();
+        Border1 = new javax.swing.JPanel();
+        Border = new javax.swing.JPanel();
         btnRegister = new javax.swing.JButton();
         btnLogin = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
@@ -149,19 +218,35 @@ private void customInit() {
         setOpaque(false);
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
+        eyeToggle.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/EyeToggle.png"))); // NOI18N
+        add(eyeToggle, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 130, -1, 20));
+
         lock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/lock.png"))); // NOI18N
         add(lock, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 130, 20, 20));
 
         person.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/person.png"))); // NOI18N
         add(person, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 70, 20, 20));
-        add(txtUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 60, 190, 40));
 
-        txtPassword.addActionListener(new java.awt.event.ActionListener() {
+        txtPassword1.setBackground(new java.awt.Color(102, 102, 102));
+        txtPassword1.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        txtPassword1.setBorder(null);
+        add(txtPassword1, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 120, 110, 40));
+
+        txtUsername.setBackground(new java.awt.Color(102, 102, 102));
+        txtUsername.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        txtUsername.setBorder(null);
+        txtUsername.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtPasswordActionPerformed(evt);
+                txtUsernameActionPerformed(evt);
             }
         });
-        add(txtPassword, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 120, 190, 40));
+        add(txtUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(370, 60, 150, 40));
+
+        Border1.setBackground(new java.awt.Color(102, 102, 102));
+        add(Border1, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 60, 190, 40));
+
+        Border.setBackground(new java.awt.Color(102, 102, 102));
+        add(Border, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 120, 190, 40));
 
         btnRegister.setText("REGISTER");
         btnRegister.addActionListener(new java.awt.event.ActionListener() {
@@ -192,20 +277,21 @@ private void customInit() {
         dashboard.showRegistrationStep1();
     }//GEN-LAST:event_btnRegisterActionPerformed
 
-    private void txtPasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPasswordActionPerformed
+    private void txtUsernameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtUsernameActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txtPasswordActionPerformed
+    }//GEN-LAST:event_txtUsernameActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel Border;
+    private javax.swing.JPanel Border1;
     private javax.swing.JButton btnLogin;
     private javax.swing.JButton btnRegister;
+    private javax.swing.JLabel eyeToggle;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel lock;
     private javax.swing.JLabel person;
-    private javax.swing.JPasswordField txtPassword;
+    private javax.swing.JPasswordField txtPassword1;
     private javax.swing.JTextField txtUsername;
     // End of variables declaration//GEN-END:variables
-    // GEN-FIRST:event_btnUserMouseExited 
-    // TODO add your handling code here: 
-    // }                                    
+                                   
 }

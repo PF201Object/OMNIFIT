@@ -65,44 +65,61 @@ public final class Profile extends javax.swing.JPanel {
         }
     }
 
-    private void saveProfileChanges() {
-        String newUser = txtNewUsername.getText().trim();
-        if (newUser.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Username cannot be empty!");
-            return;
-        }
-
-        Connection conn = null;
-        try {
-            conn = Config.connect();
-            conn.setAutoCommit(false);
-
-            String sqlMgmt = "UPDATE Management SET Username = ? WHERE Username = ?";
-            PreparedStatement pstMgmt = conn.prepareStatement(sqlMgmt);
-            pstMgmt.setString(1, newUser);
-            pstMgmt.setString(2, currentUsername);
-            pstMgmt.executeUpdate();
-
-            String sqlUsers = "UPDATE Users SET Username = ?, Profile_Pic = ? WHERE Username = ?";
-            PreparedStatement pstUsers = conn.prepareStatement(sqlUsers);
-            pstUsers.setString(1, newUser);
-            pstUsers.setString(2, (selectedImageFile != null) ? selectedImageFile.getAbsolutePath() : null);
-            pstUsers.setString(3, currentUsername);
-            
-            int rows = pstUsers.executeUpdate();
-
-            if (rows > 0) {
-                conn.commit();
-                JOptionPane.showMessageDialog(this, "Profile Saved! Relogging.");
-                dashboard.btnLogoutActionPerformed(null); 
-            }
-        } catch (SQLException e) {
-            if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
-            JOptionPane.showMessageDialog(this, "Update Failed: " + e.getMessage());
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) {}
-        }
+private void saveProfileChanges() {
+    String newUser = txtNewUsername.getText().trim();
+    if (newUser.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Username cannot be empty!");
+        return;
     }
+
+    Connection conn = null;
+    try {
+        conn = Config.connect();
+        conn.setAutoCommit(false);
+
+        // Update Management table
+        String sqlMgmt = "UPDATE Management SET Username = ? WHERE Username = ?";
+        PreparedStatement pstMgmt = conn.prepareStatement(sqlMgmt);
+        pstMgmt.setString(1, newUser);
+        pstMgmt.setString(2, currentUsername);
+        pstMgmt.executeUpdate();
+
+        // Update Users table
+        String sqlUsers = "UPDATE Users SET Username = ?, Profile_Pic = ? WHERE Username = ?";
+        PreparedStatement pstUsers = conn.prepareStatement(sqlUsers);
+        pstUsers.setString(1, newUser);
+        pstUsers.setString(2, (selectedImageFile != null) ? selectedImageFile.getAbsolutePath() : null);
+        pstUsers.setString(3, currentUsername);
+        
+        int rows = pstUsers.executeUpdate();
+
+        if (rows > 0) {
+            conn.commit();
+            
+            // --- REFRESH LOGIC START ---
+            // 1. Update the local variable so subsequent edits use the new name
+            currentUsername = newUser; 
+            
+            // 2. Update the UI Labels immediately
+            lblUsername.setText(currentUsername); // Replace with your actual Label ID
+            // If you have a sidebar or header with the name, update it here too
+            
+            // 3. (Optional) Re-load the image if changed
+            if (selectedImageFile != null) {
+                // updateProfilePictureLabel(selectedImageFile.getAbsolutePath());
+            }
+            // --- REFRESH LOGIC END ---
+
+            JOptionPane.showMessageDialog(this, "Profile Saved!");
+            setEditMode(false); 
+        }
+    } catch (SQLException e) {
+        if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
+        JOptionPane.showMessageDialog(this, "Update Failed: " + e.getMessage());
+    } finally {
+        try { if (conn != null) conn.close(); } catch (SQLException e) {}
+    }
+}
 
     public void loadUserProfile(String username) {
         this.currentUsername = username;

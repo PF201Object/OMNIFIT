@@ -18,6 +18,14 @@ public class Registration1 extends javax.swing.JPanel {
         initComponents();
         customInit();
     }
+    
+    public void clearFields() {
+    txtName.setText("");
+    txtEmail.setText("");
+    txtPassword.setText("");
+    txtConfirmPassword.setText("");
+    txtContact.setText("");
+}
 
     private void customInit() {
         this.setOpaque(false);

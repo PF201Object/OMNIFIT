@@ -12,7 +12,7 @@ public class Registration2 extends javax.swing.JPanel {
     
     private final DashboardForm dashboard;
     private final Registration1 step1;
-    private String selectedRole = "";
+    private String selectedRole = "User";
     private String selectedGender = "";
     private int homeOriginalY; 
     
@@ -63,6 +63,12 @@ public class Registration2 extends javax.swing.JPanel {
         btnBackToStep1.setFocusPainted(false);
         btnBackToStep1.setBorder(null);
         addButtonHoverEffect(btnBackToStep1, primaryColor, hoverColor);
+    }
+    public void clearSelections() {
+    selectedGender = "";
+    // Reset icons to original state
+    btnMale.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/Male.png")));
+    btnFemale.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/Female.png")));
     }
     
         private void addButtonHoverEffect(JButton button, Color baseColor, Color hoverColor) {
@@ -171,10 +177,6 @@ public class Registration2 extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "Please select a Gender!", "Gender Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        if (selectedRole.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select a Position!", "Position Required", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
 
         String customID = generateNextOMNIId();
         String username = step1.getUsername();
@@ -188,17 +190,15 @@ public class Registration2 extends javax.swing.JPanel {
         );        
 
         if (success) {
-            // Instead of just going to login, show the ID Card
+            
+            step1.clearFields();   
+            this.clearSelections();
             dashboard.showIDCard(customID, username, selectedRole, email, contact);
         }
     }
 
     private double getSalaryForRole(String role) {
         switch (role) {
-            case "GYM Manager": return 30000.00;
-            case "Coach/Instructor": return 25000.00;
-            case "Receptionist": return 15000.00;
-            case "Staff": return 10000.00;
             default: return 0.00;
         }
     }
@@ -216,12 +216,7 @@ public class Registration2 extends javax.swing.JPanel {
 
         lblGenderHeader = new javax.swing.JLabel();
         btnFemale = new javax.swing.JButton();
-        btnRecep = new javax.swing.JButton();
-        btnStaff = new javax.swing.JButton();
         btnMale = new javax.swing.JButton();
-        lblRoleHeader = new javax.swing.JLabel();
-        btnManager = new javax.swing.JButton();
-        btnCoach = new javax.swing.JButton();
         btnFinalRegister = new javax.swing.JButton();
         btnBackToStep1 = new javax.swing.JButton();
         jLabel5 = new javax.swing.JLabel();
@@ -253,22 +248,6 @@ public class Registration2 extends javax.swing.JPanel {
         });
         add(btnFemale, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 90, 70, 50));
 
-        btnRecep.setText("RECEPTIONIST");
-        btnRecep.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnRecepActionPerformed(evt);
-            }
-        });
-        add(btnRecep, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 210, 80, 30));
-
-        btnStaff.setText("STAFF");
-        btnStaff.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnStaffActionPerformed(evt);
-            }
-        });
-        add(btnStaff, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 210, 80, 30));
-
         btnMale.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         btnMale.setForeground(new java.awt.Color(255, 255, 255));
         btnMale.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/Male.png"))); // NOI18N
@@ -291,34 +270,15 @@ public class Registration2 extends javax.swing.JPanel {
         });
         add(btnMale, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 90, 70, 50));
 
-        lblRoleHeader.setText("Select Position:");
-        add(lblRoleHeader, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 150, 100, 20));
-
-        btnManager.setText("Manager");
-        btnManager.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnManagerActionPerformed(evt);
-            }
-        });
-        add(btnManager, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 170, 80, 30));
-
-        btnCoach.setText("Coach");
-        btnCoach.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnCoachActionPerformed(evt);
-            }
-        });
-        add(btnCoach, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 170, 80, 30));
-
         btnFinalRegister.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
-        btnFinalRegister.setText("REGISTER NOW");
+        btnFinalRegister.setText("REGISTER");
         btnFinalRegister.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnFinalRegister.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnFinalRegisterActionPerformed(evt);
             }
         });
-        add(btnFinalRegister, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 230, 170, 40));
+        add(btnFinalRegister, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 180, 130, 30));
 
         btnBackToStep1.setText("← Back to Info");
         btnBackToStep1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -327,7 +287,7 @@ public class Registration2 extends javax.swing.JPanel {
                 btnBackToStep1ActionPerformed(evt);
             }
         });
-        add(btnBackToStep1, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 280, 130, 30));
+        add(btnBackToStep1, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 220, 130, 30));
 
         jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/LoginBB.png"))); // NOI18N
         jLabel5.setToolTipText("");
@@ -366,30 +326,6 @@ public class Registration2 extends javax.swing.JPanel {
         selectGender("Female", btnFemale);
     }//GEN-LAST:event_btnFemaleActionPerformed
 
-    private void btnRecepActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepActionPerformed
-selectedRole = "GYM Manager";
-    // Optional: Add visual feedback so the user knows it's selected
-    System.out.println("Role selected: " + selectedRole);
-    }//GEN-LAST:event_btnRecepActionPerformed
-
-    private void btnStaffActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnStaffActionPerformed
-selectedRole = "GYM Manager";
-    // Optional: Add visual feedback so the user knows it's selected
-    System.out.println("Role selected: " + selectedRole);
-    }//GEN-LAST:event_btnStaffActionPerformed
-
-    private void btnCoachActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCoachActionPerformed
-selectedRole = "GYM Manager";
-    // Optional: Add visual feedback so the user knows it's selected
-    System.out.println("Role selected: " + selectedRole);
-    }//GEN-LAST:event_btnCoachActionPerformed
-
-    private void btnManagerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnManagerActionPerformed
-selectedRole = "GYM Manager";
-    // Optional: Add visual feedback so the user knows it's selected
-    System.out.println("Role selected: " + selectedRole);
-    }//GEN-LAST:event_btnManagerActionPerformed
-
 
     
     private void btnFinalRegisterActionPerformed(java.awt.event.ActionEvent evt) { handleRegistration(); }
@@ -397,15 +333,10 @@ selectedRole = "GYM Manager";
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBackToStep1;
-    private javax.swing.JButton btnCoach;
     private javax.swing.JButton btnFemale;
     private javax.swing.JButton btnFinalRegister;
     private javax.swing.JButton btnMale;
-    private javax.swing.JButton btnManager;
-    private javax.swing.JButton btnRecep;
-    private javax.swing.JButton btnStaff;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel lblGenderHeader;
-    private javax.swing.JLabel lblRoleHeader;
     // End of variables declaration//GEN-END:variables
 }

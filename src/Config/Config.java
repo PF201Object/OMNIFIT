@@ -37,14 +37,17 @@ public class Config {
                 + "FOREIGN KEY (Username) REFERENCES Users(Username));";
 
         // 3. Members Table Definition
-        String membersTable = "CREATE TABLE IF NOT EXISTS Members ("
-                + "M_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "Name TEXT NOT NULL,"
-                + "Contact_No TEXT,"
-                + "Email TEXT UNIQUE,"
-                + "Join_date TEXT,"
-                + "Membership_Status TEXT,"
-                + "Membership_Type TEXT);";
+        // 3. Updated Members Table Definition
+                String membersTable = "CREATE TABLE IF NOT EXISTS Members ("
+                        + "M_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        + "Name TEXT NOT NULL,"
+                        + "Contact_No TEXT,"
+                        + "Email TEXT UNIQUE,"
+                        + "Join_date TEXT,"
+                        + "Expiry_date TEXT," // New Column
+                        + "Membership_Status TEXT,"
+                        + "S_ID INTEGER,"      // Service Foreign Key
+                        + "FOREIGN KEY (S_ID) REFERENCES Services(S_ID));";
 
         // 4. Services Table Definition
         String servicesTable = "CREATE TABLE IF NOT EXISTS Services ("
@@ -57,15 +60,16 @@ public class Config {
 
         // 5. Payments Table for Members
         String paymentsTable = "CREATE TABLE IF NOT EXISTS Payments ("
-                + "Payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "Amount REAL DEFAULT 0.0,"
-                + "Payment_Date TEXT,"
-                + "Payment_Method TEXT,"
-                + "Payment_Status TEXT DEFAULT 'Pending',"
-                + "Reference_Number TEXT,"
-                + "Service_ID INTEGER,"
-                + "FOREIGN KEY (Member_ID) REFERENCES Members(M_ID),"
-                + "FOREIGN KEY (Service_ID) REFERENCES Services(S_ID));";
+        + "Payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+        + "Member_ID INTEGER," // <--- YOU WERE MISSING THIS LINE
+        + "Amount REAL DEFAULT 0.0,"
+        + "Payment_Date TEXT,"
+        + "Payment_Method TEXT,"
+        + "Payment_Status TEXT DEFAULT 'Pending',"
+        + "Reference_Number TEXT,"
+        + "Service_ID INTEGER,"
+        + "FOREIGN KEY (Member_ID) REFERENCES Members(M_ID),"
+        + "FOREIGN KEY (Service_ID) REFERENCES Services(S_ID));";
 
         // 6. Payroll Table for Staff
         String payrollTable = "CREATE TABLE IF NOT EXISTS Payroll ("
@@ -108,47 +112,56 @@ public class Config {
                 + "Receipt_Data TEXT,"
                 + "FOREIGN KEY (Transaction_ID) REFERENCES Transactions(Transaction_ID));";
 
-        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
-            // Execute table creations
-            stmt.execute(usersTable);
-            stmt.execute(managementTable);
-            stmt.execute(membersTable);
-            stmt.execute(servicesTable);
-            stmt.execute(paymentsTable);
-            stmt.execute(payrollTable);
-            stmt.execute(transactionsTable);
-            stmt.execute(receiptsTable);
-            
-            // --- MIGRATION SCRIPTS ---
-            // Add Gender column if not exists
-            try {
-                        // This line specifically adds the Fee column you're missing
-                        stmt.execute("ALTER TABLE Services ADD COLUMN Fee REAL DEFAULT 0.0;");
-                        System.out.println("Migration: Fee column added to Services table.");
-                    } catch (SQLException e) {
-                        // If the column already exists, it will throw an error; we ignore it.
-                        if (!e.getMessage().contains("duplicate column name")) {
-                            System.err.println("Migration Error: " + e.getMessage());
-                        }
-                    }
-            
-            // Add indexes for better performance
-            try {
-                stmt.execute("CREATE INDEX IF NOT EXISTS idx_payments_member ON Payments(Member_ID);");
-                stmt.execute("CREATE INDEX IF NOT EXISTS idx_payroll_staff ON Payroll(Staff_ID);");
-                stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_date ON Transactions(Transaction_Date);");
-                System.out.println("Indexes created successfully.");
-            } catch (SQLException e) {
-                System.err.println("Index creation note: " + e.getMessage());
-            }
-            
-            setupDefaultAdmin();
-            setupDefaultServices();
-            setupSampleData(); // Optional: Add sample data for testing
-            
+     try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+        // Execute table creations
+        stmt.execute(usersTable);
+        stmt.execute(managementTable);
+        stmt.execute(membersTable);
+        stmt.execute(servicesTable);
+        stmt.execute(paymentsTable);
+        stmt.execute(payrollTable);
+        stmt.execute(transactionsTable);
+        stmt.execute(receiptsTable);
+        
+        // --- MIGRATION SCRIPTS ---
+        // Add Fee column if not exists
+        try {
+            stmt.execute("ALTER TABLE Services ADD COLUMN Fee REAL DEFAULT 0.0;");
+            System.out.println("Migration: Fee column added to Services table.");
         } catch (SQLException e) {
-            System.err.println("DB Init Error: " + e.getMessage());
+            if (!e.getMessage().contains("duplicate column name")) {
+                System.err.println("Migration Error: " + e.getMessage());
+            }
         }
+        
+        // ADD THIS NEW MIGRATION HERE:
+        try {
+            // Add Notes column to Payments table if it doesn't exist
+            stmt.execute("ALTER TABLE Payments ADD COLUMN Notes TEXT;");
+            System.out.println("Migration: Notes column added to Payments table.");
+        } catch (SQLException e) {
+            // If the column already exists, it will throw an error; we ignore it.
+            if (!e.getMessage().contains("duplicate column name")) {
+                System.err.println("Migration Error: " + e.getMessage());
+            }
+        }
+        
+        // Add indexes for better performance
+        try {
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_payments_member ON Payments(Member_ID);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_payroll_staff ON Payroll(Staff_ID);");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_transactions_date ON Transactions(Transaction_Date);");
+            System.out.println("Indexes created successfully.");
+        } catch (SQLException e) {
+            System.err.println("Index creation note: " + e.getMessage());
+        }
+        
+        setupDefaultServices();
+        setupSampleData();
+        
+    } catch (SQLException e) {
+        System.err.println("DB Init Error: " + e.getMessage());
+    }
     }
 
     public static boolean registerUser(String customID, String username, String pass, String email, 
@@ -402,20 +415,34 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-    public static String getUserRole(String username, String password) {
-        String sql = "SELECT M.Role_Position FROM Users U " +
-                     "INNER JOIN Management M ON U.Username = M.Username " +
-                     "WHERE U.Username = ? AND U.Password = ?";
-        try (Connection conn = connect(); PreparedStatement pst = conn.prepareStatement(sql)) {
-            pst.setString(1, username);
-            pst.setString(2, password);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) return rs.getString("Role_Position");
-        } catch (SQLException e) { 
-            System.err.println("Error getting user role: " + e.getMessage());
+   public static String getUserRole(String identifier, String password) {
+    System.out.println("=== DEBUG: Getting user role for: " + identifier + " ===");
+    
+    // Simply get the Role from Users table - this is all we need for permissions
+    String sql = "SELECT Role FROM Users WHERE (Username = ? OR Email = ?) AND Password = ?";
+    
+    try (Connection conn = connect();
+         PreparedStatement pst = conn.prepareStatement(sql)) {
+        
+        pst.setString(1, identifier);
+        pst.setString(2, identifier);
+        pst.setString(3, password);
+        
+        ResultSet rs = pst.executeQuery();
+        if (rs.next()) {
+            String role = rs.getString("Role");
+            System.out.println("Role found in Users table: " + role);
+            return role;
+        } else {
+            System.out.println("No user found with those credentials");
         }
-        return null;
+    } catch (SQLException e) {
+        System.err.println("Error getting user role: " + e.getMessage());
     }
+    
+    return null;
+}
+ 
     
     public static boolean executeUpdate(String sql, Object... params) {
         try (Connection conn = connect(); PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -428,14 +455,7 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
             return false;
         }
     }
-    
-    private static void setupDefaultAdmin() {
-        if (!isUserExists("admin")) {
-            registerUser("OMNI-00-1000", "admin", "admin123", "admin@Omni.com", 
-                        "000", "Other", "Administrator", "Active", 50000.0);
-        }
-    }
-    
+
     private static void setupSampleData() {
         // Add sample members if none exist
         String checkMembers = "SELECT COUNT(*) FROM Members";
@@ -445,10 +465,10 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
             
             if (rs.next() && rs.getInt(1) == 0) {
                 // Add sample members
-                String insertMembers = "INSERT INTO Members (Name, Contact_No, Email, Join_date, Membership_Status, Membership_Type) VALUES " +
-                    "('John Doe', '123-456-7890', 'john@email.com', date('now'), 'Active', 'Premium')," +
-                    "('Jane Smith', '123-456-7891', 'jane@email.com', date('now'), 'Active', 'Regular')," +
-                    "('Bob Johnson', '123-456-7892', 'bob@email.com', date('now'), 'Active', 'VIP')";
+                String insertMembers = "INSERT INTO Members (Name, Contact_No, Email, Join_date, Membership_Status, S_ID) VALUES " +
+                    "('John Doe', '123-456-7890', 'john@email.com', date('now'), 'Active', 2)," + // 2 is Regular
+                    "('Jane Smith', '123-456-7891', 'jane@email.com', date('now'), 'Active', 3)," + // 3 is Premium
+                    "('Bob Johnson', '123-456-7892', 'bob@email.com', date('now'), 'Active', 4)";  // 4 is VIP
                 stmt.executeUpdate(insertMembers);
                 System.out.println("Sample members added.");
             }
@@ -522,6 +542,42 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         } catch (SQLException e) {
             System.err.println("Error getting transactions: " + e.getMessage());
             return null;
+        }
+    }
+    private static String currentUsername = "";
+private static String currentUserRole = "Guest";
+
+public static void setCurrentUser(String username, String role) {
+    currentUsername = username;
+    currentUserRole = role;
+}
+
+public static String getCurrentUsername() {
+    return currentUsername;
+}
+
+public static String getCurrentUserRole() {
+    return currentUserRole;
+}
+
+        public static boolean verifyAdminCredentials(String username, String password) {
+        // Added OR for 'Administrator' and made it case-insensitive via query logic if needed, 
+        // but SQLite is case-sensitive for strings by default.
+        String sql = "SELECT Role FROM Users WHERE Username = ? AND Password = ? " +
+                     "AND (Role = 'Admin' OR Role = 'Administrator' OR Role = 'admin')";
+
+        try (Connection conn = connect();
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            pst.setString(1, username);
+            pst.setString(2, password);
+
+            ResultSet rs = pst.executeQuery();
+            return rs.next(); // If a row exists, they are an admin
+
+        } catch (SQLException e) {
+            System.err.println("Admin verification error: " + e.getMessage());
+            return false;
         }
     }
 }

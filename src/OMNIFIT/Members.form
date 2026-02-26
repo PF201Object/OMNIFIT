@@ -155,10 +155,21 @@
             <Property name="text" type="java.lang.String" value="PAYMENT"/>
           </Properties>
         </Component>
-        <Component class="javax.swing.JButton" name="btnReceipt">
+        <Component class="javax.swing.JButton" name="btnTransaction">
           <Properties>
-            <Property name="text" type="java.lang.String" value="RECEIPT"/>
+            <Property name="text" type="java.lang.String" value="Transaction"/>
           </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnTransactionActionPerformed"/>
+          </Events>
+        </Component>
+        <Component class="javax.swing.JButton" name="btnAuth">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="AUTH"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnAuthActionPerformed"/>
+          </Events>
         </Component>
       </SubComponents>
     </Container>

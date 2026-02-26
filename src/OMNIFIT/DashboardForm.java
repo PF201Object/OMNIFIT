@@ -1,5 +1,6 @@
 package OMNIFIT;
 
+import Config.Config;
 import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -163,26 +164,37 @@ public final class DashboardForm extends javax.swing.JFrame {
     
     
 
-    public void loginSuccess(String username, String role) {
-        this.currentUsername = username;
-        this.userRole = role;
-        hideAllPanels();
-              
-        loginPanel.setVisible(false);
-        MEMBERS.setVisible(true);
-        SERVICES.setVisible(true);
-        profile.setVisible(true); 
-        boolean isAdmin = "Administrator".equalsIgnoreCase(role);
-        
-        MANAGEMENT.setVisible(isAdmin); 
-        btnUser.setVisible(isAdmin);    
-        
-        membersPanel.loadMemberData(); 
-        showPanel(membersPanel);
-        
-        getContentPane().revalidate();
-        getContentPane().repaint();
-    }
+   public void loginSuccess(String username, String role) {
+    this.currentUsername = username;
+    this.userRole = role; // This comes from the DB
+    hideAllPanels();
+    
+    Config.setCurrentUser(username, role);
+          
+    loginPanel.setVisible(false);
+    
+    // Show Standard Features
+    MEMBERS.setVisible(true);
+    SERVICES.setVisible(true);
+    profile.setVisible(true); 
+    
+    // IMPROVED ADMIN CHECK:
+    // This handles "Admin", "ADMIN", "Administrator", and "administrator"
+    boolean isAdmin = role != null && (
+                      role.equalsIgnoreCase("Admin") || 
+                      role.equalsIgnoreCase("Administrator")
+                      );
+    
+    // Admin-only features
+    MANAGEMENT.setVisible(isAdmin); 
+    btnUser.setVisible(isAdmin);
+    
+    membersPanel.loadMemberData(); 
+    showPanel(membersPanel);
+    
+    getContentPane().revalidate();
+    getContentPane().repaint();
+}
 
     // ===== ANIMATION =====
     private javax.swing.ImageIcon getGlowIcon(javax.swing.ImageIcon icon) {
@@ -235,8 +247,16 @@ private void runAnimation(javax.swing.JButton btn, boolean enter) {
     }
 
     void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) {
-        userRole = "Guest";
-        showLogin();
+    userRole = "Guest";
+    currentUsername = ""; // Clear the stored username too
+    
+    // This is the important part:
+    // It calls the clearFields method we added to your LoginForm
+    if (loginPanel != null) {
+        loginPanel.clearFields();
+    }
+    
+    showLogin();
     }
 
     // ===== HOVER EFFECTS =====
@@ -290,7 +310,7 @@ private void runAnimation(javax.swing.JButton btn, boolean enter) {
 
         profile.setFont(new java.awt.Font("Serif", 1, 18)); // NOI18N
         profile.setForeground(new java.awt.Color(255, 255, 255));
-        profile.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/Profile.png"))); // NOI18N
+        profile.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Dashboard.image/Profil1e.png"))); // NOI18N
         profile.setBorderPainted(false);
         profile.setContentAreaFilled(false);
         profile.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -308,7 +328,7 @@ private void runAnimation(javax.swing.JButton btn, boolean enter) {
                 profileActionPerformed(evt);
             }
         });
-        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, 70, 50));
+        getContentPane().add(profile, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 20, 120, 90));
 
         btnExit.setFont(new java.awt.Font("Verdana", 1, 18)); // NOI18N
         btnExit.setForeground(new java.awt.Color(255, 0, 0));

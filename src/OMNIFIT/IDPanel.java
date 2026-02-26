@@ -1,5 +1,7 @@
 package OMNIFIT;
 
+import java.awt.Color;
+import java.awt.Cursor;
 import javax.swing.*;
 
 public class IDPanel extends javax.swing.JPanel {
@@ -19,8 +21,30 @@ public class IDPanel extends javax.swing.JPanel {
         lblRole.setText("" + role);
         lblEmail.setText("" + email);
         lblContacts.setText("+64-" + contact);
-
+        
+        Color primaryColor = new Color(92, 225, 230); // Bright Cyan
+        Color hoverColor = new Color(130, 240, 245);  // Lighter Cyan
+        Color textColor = new Color(20, 60, 80); 
+        
+        btnDone.setBackground(primaryColor);
+        btnDone.setForeground(textColor);
+        btnDone.setFocusPainted(false);
+        btnDone.setBorder(null);
+        addButtonHoverEffect(btnDone, primaryColor, hoverColor);
+        
+        btnBack.setBackground(primaryColor);
+        btnBack.setForeground(textColor);
+        btnBack.setFocusPainted(false);
+        btnBack.setBorder(null);
+        addButtonHoverEffect(btnBack, primaryColor, hoverColor);
+        
+        btnFront.setBackground(primaryColor);
+        btnFront.setForeground(textColor);
+        btnFront.setFocusPainted(false);
+        btnFront.setBorder(null);
+        addButtonHoverEffect(btnFront, primaryColor, hoverColor);
         // Initial State Setup
+        
         Back.setVisible(false);
         lblContacts.setVisible(false);
         lblID.setVisible(false);
@@ -43,6 +67,20 @@ public class IDPanel extends javax.swing.JPanel {
         });
         startTimer.setRepeats(false);
         startTimer.start();
+    }
+            private void addButtonHoverEffect(JButton button, Color baseColor, Color hoverColor) {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+                button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(baseColor);
+            }
+        });
     }
 
     private void performFlip(boolean targetFront) {
@@ -191,10 +229,7 @@ public class IDPanel extends javax.swing.JPanel {
     }
 
     private void btnDoneActionPerformed(java.awt.event.ActionEvent evt) {
-        if (dashboard != null) {
-            dashboard.setVisible(true);
-        }
-        dashboard.showLogin();
+        dashboard.btnLogoutActionPerformed(evt);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

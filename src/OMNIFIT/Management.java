@@ -53,7 +53,7 @@ private void styleButtons() {
     Color buttonBg = new Color(255, 102, 0);
     Color buttonFg = Color.WHITE;
     
-    JButton[] buttons = {btnUpdate, btnDelete, btnRefresh, btnPaycheck, btnSearch};
+    JButton[] buttons = {btnAdd, btnUpdate, btnDelete, btnRefresh, btnPaycheck, btnSearch};
     
     for (JButton btn : buttons) {
         if (btn != null) {
@@ -67,6 +67,7 @@ private void styleButtons() {
     }
 
     // --- ADD THIS SECTION TO FIX THE BUTTONS ---
+    btnAdd.addActionListener(e -> addStaff());
     btnUpdate.addActionListener(e -> updateStaff());
     btnDelete.addActionListener(e -> deleteStaff());
     btnRefresh.addActionListener(e -> loadBookingData());
@@ -140,97 +141,126 @@ private void styleButtons() {
         }
     }
 
-    private void addStaff() {
-        JTextField usernameField = new JTextField();
-        JComboBox<String> roleBox = new JComboBox<>(new String[]{"Trainer", "Manager", "Receptionist", "Cleaner", "Administrator"});
-        JTextField payRateField = new JTextField();
-        JTextField emailField = new JTextField();
+ private void addStaff() {
+    JTextField usernameField = new JTextField();
+    String[] roles = {"GYM Manager", "Coach/Instructor", "Receptionist", "Staff"};
+    JComboBox<String> roleBox = new JComboBox<>(roles);
+    JTextField payRateField = new JTextField("30000.00"); // Default for Manager
+    payRateField.setEditable(false); // Make it non-editable
+    JTextField emailField = new JTextField();
 
-        Object[] message = {
-            "Username:", usernameField,
-            "Role:", roleBox,
-            "Pay Rate (Monthly):", payRateField,
-            "Work Email:", emailField
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, message, "Add New Staff", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            String sql = "INSERT INTO Management (Username, Role_Position, Salary_PayRate, WorkEmail) " +
-                        "VALUES (?, ?, ?, ?)";
-            
-            try (Connection conn = Config.connect();
-                 PreparedStatement pst = conn.prepareStatement(sql)) {
-                
-                pst.setString(1, usernameField.getText());
-                pst.setString(2, roleBox.getSelectedItem().toString());
-                pst.setDouble(3, Double.parseDouble(payRateField.getText()));
-                pst.setString(4, emailField.getText());
-                
-                pst.executeUpdate();
-                loadBookingData();
-                JOptionPane.showMessageDialog(this, "Staff added successfully!");
-                
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error adding staff: " + e.getMessage());
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid pay rate format");
+    // Map roles to salaries
+roleBox.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent e) {
+            String selected = (String) roleBox.getSelectedItem();
+            switch (selected) {
+                case "GYM Manager":
+                    payRateField.setText("30000.00");
+                    break;
+                case "Coach/Instructor":
+                    payRateField.setText("25000.00");
+                    break;
+                case "Receptionist":
+                    payRateField.setText("15000.00");
+                    break;
+                case "Staff":
+                    payRateField.setText("10000.00");
+                    break;
             }
         }
+    });
+
+    Object[] message = {
+        "Username:", usernameField,
+        "Role:", roleBox,
+        "Pay Rate (Fixed):", payRateField,
+        "Work Email:", emailField
+    };
+
+    int option = JOptionPane.showConfirmDialog(this, message, "Add New Staff", JOptionPane.OK_CANCEL_OPTION);
+    if (option == JOptionPane.OK_OPTION) {
+        String sql = "INSERT INTO Management (Username, Role_Position, Salary_PayRate, WorkEmail) VALUES (?, ?, ?, ?)";
+        try (Connection conn = Config.connect(); PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, usernameField.getText());
+            pst.setString(2, roleBox.getSelectedItem().toString());
+            pst.setDouble(3, Double.parseDouble(payRateField.getText()));
+            pst.setString(4, emailField.getText());
+            pst.executeUpdate();
+            loadBookingData();
+            JOptionPane.showMessageDialog(this, "Staff added successfully!");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+        }
     }
+}
 
     private void updateStaff() {
-        int selectedRow = tblBookings.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a staff member to update");
-            return;
-        }
+    int selectedRow = tblBookings.getSelectedRow();
+    if (selectedRow < 0) {
+        JOptionPane.showMessageDialog(this, "Please select a staff member to update");
+        return;
+    }
 
-        int id = (int) tblBookings.getValueAt(selectedRow, 0);
-        String username = (String) tblBookings.getValueAt(selectedRow, 1);
-        String role = (String) tblBookings.getValueAt(selectedRow, 2);
-        String payRateStr = ((String) tblBookings.getValueAt(selectedRow, 3)).replace("₱ ", "").replace(",", "");
-        String email = (String) tblBookings.getValueAt(selectedRow, 4);
+    int id = (int) tblBookings.getValueAt(selectedRow, 0);
+    String username = (String) tblBookings.getValueAt(selectedRow, 1);
+    String role = (String) tblBookings.getValueAt(selectedRow, 2);
+    String email = (String) tblBookings.getValueAt(selectedRow, 4);
 
-        JTextField usernameField = new JTextField(username);
-        JComboBox<String> roleBox = new JComboBox<>(new String[]{"Trainer", "Manager", "Receptionist", "Cleaner", "Administrator"});
-        roleBox.setSelectedItem(role);
-        JTextField payRateField = new JTextField(payRateStr);
-        JTextField emailField = new JTextField(email);
+    JTextField usernameField = new JTextField(username);
+    String[] roles = {"GYM Manager", "Coach/Instructor", "Receptionist", "Staff"};
+    final JComboBox<String> roleBox = new JComboBox<>(roles);
+    final JTextField payRateField = new JTextField();
+    payRateField.setEditable(false);
 
-        Object[] message = {
-            "Username:", usernameField,
-            "Role:", roleBox,
-            "Pay Rate (Monthly):", payRateField,
-            "Work Email:", emailField
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, message, "Update Staff", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            String sql = "UPDATE Management SET Username=?, Role_Position=?, Salary_PayRate=?, WorkEmail=? " +
-                        "WHERE Staffid=?";
-            
-            try (Connection conn = Config.connect();
-                 PreparedStatement pst = conn.prepareStatement(sql)) {
-                
-                pst.setString(1, usernameField.getText());
-                pst.setString(2, roleBox.getSelectedItem().toString());
-                pst.setDouble(3, Double.parseDouble(payRateField.getText()));
-                pst.setString(4, emailField.getText());
-                pst.setInt(5, id);
-                
-                pst.executeUpdate();
-                loadBookingData();
-                JOptionPane.showMessageDialog(this, "Staff updated successfully!");
-                
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error updating staff: " + e.getMessage());
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid pay rate format");
+    roleBox.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent e) {
+            String selected = (String) roleBox.getSelectedItem();
+            switch (selected) {
+                case "GYM Manager":
+                    payRateField.setText("30000.00");
+                    break;
+                case "Coach/Instructor":
+                    payRateField.setText("25000.00");
+                    break;
+                case "Receptionist":
+                    payRateField.setText("15000.00");
+                    break;
+                case "Staff":
+                    payRateField.setText("10000.00");
+                    break;
             }
         }
+    });
+    
+    // Set initial selection and trigger the salary text
+    roleBox.setSelectedItem(role); 
+    JTextField emailField = new JTextField(email);
+
+    Object[] message = {
+        "Username:", usernameField,
+        "Role:", roleBox,
+        "Pay Rate (Fixed):", payRateField,
+        "Work Email:", emailField
+    };
+
+    int option = JOptionPane.showConfirmDialog(this, message, "Update Staff", JOptionPane.OK_CANCEL_OPTION);
+    if (option == JOptionPane.OK_OPTION) {
+        String sql = "UPDATE Management SET Username=?, Role_Position=?, Salary_PayRate=?, WorkEmail=? WHERE Staffid=?";
+        try (Connection conn = Config.connect(); 
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, usernameField.getText());
+            pst.setString(2, roleBox.getSelectedItem().toString());
+            pst.setDouble(3, Double.parseDouble(payRateField.getText()));
+            pst.setString(4, emailField.getText());
+            pst.setInt(5, id);
+            pst.executeUpdate();
+            loadBookingData();
+            JOptionPane.showMessageDialog(this, "Staff updated successfully!");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+        }
     }
+}
 
     private void deleteStaff() {
         int selectedRow = tblBookings.getSelectedRow();
@@ -475,6 +505,7 @@ private void styleButtons() {
         tableScroll = new javax.swing.JScrollPane();
         tblBookings = new javax.swing.JTable();
         buttonPanel = new javax.swing.JPanel();
+        btnAdd = new javax.swing.JButton();
         btnUpdate = new javax.swing.JButton();
         btnDelete = new javax.swing.JButton();
         btnPaycheck = new javax.swing.JButton();
@@ -532,6 +563,9 @@ private void styleButtons() {
         buttonPanel.setOpaque(false);
         buttonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 0));
 
+        btnAdd.setText("ADD");
+        buttonPanel.add(btnAdd);
+
         btnUpdate.setText("UPDATE");
         buttonPanel.add(btnUpdate);
 
@@ -545,6 +579,7 @@ private void styleButtons() {
     }// </editor-fold>//GEN-END:initComponents
 	
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAdd;
     private javax.swing.JButton btnDelete;
     private javax.swing.JButton btnPaycheck;
     private javax.swing.JButton btnRefresh;
