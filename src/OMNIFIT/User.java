@@ -375,7 +375,7 @@ public class User extends javax.swing.JPanel {
         setOpaque(false);
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        lblTitle.setFont(new java.awt.Font("SansSerif", 1, 24)); // NOI18N
+        lblTitle.setFont(new java.awt.Font("Impact", 1, 24)); // NOI18N
         lblTitle.setForeground(new java.awt.Color(255, 255, 255));
         lblTitle.setText("USER RECORDS");
         add(lblTitle, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 200, 30));

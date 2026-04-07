@@ -53,7 +53,7 @@ private void styleButtons() {
     Color buttonBg = new Color(255, 102, 0);
     Color buttonFg = Color.WHITE;
     
-    JButton[] buttons = {btnAdd, btnUpdate, btnDelete, btnRefresh, btnPaycheck, btnSearch};
+    JButton[] buttons = {btnAdd, btnUpdate, btnDelete, btnRefresh, btnSearch};
     
     for (JButton btn : buttons) {
         if (btn != null) {
@@ -71,7 +71,6 @@ private void styleButtons() {
     btnUpdate.addActionListener(e -> updateStaff());
     btnDelete.addActionListener(e -> deleteStaff());
     btnRefresh.addActionListener(e -> loadBookingData());
-    btnPaycheck.addActionListener(e -> processPaycheck());
     btnSearch.addActionListener(e -> loadBookingData(searchField.getText()));
     // --------------------------------------------
     
@@ -141,125 +140,552 @@ private void styleButtons() {
         }
     }
 
- private void addStaff() {
-    JTextField usernameField = new JTextField();
+private void addStaff() {
+    // Create custom dialog
+    JDialog addDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "ADD NEW STAFF", true);
+    addDialog.setLayout(new BorderLayout());
+    addDialog.setSize(550, 700);
+    addDialog.setLocationRelativeTo(this);
+    addDialog.setUndecorated(true);
+    
+    // Main panel with gradient background
+    JPanel mainPanel = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            GradientPaint gp = new GradientPaint(0, 0, new Color(25, 25, 35), 0, getHeight(), new Color(15, 15, 25));
+            g2d.setPaint(gp);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+            
+            // Add gym pattern
+            g2d.setColor(new Color(255, 102, 0, 30));
+            for (int i = 0; i < 10; i++) {
+                g2d.drawLine(0, i * 50, getWidth(), i * 50 + 25);
+            }
+            g2d.dispose();
+        }
+    };
+    mainPanel.setLayout(new BorderLayout(15, 15));
+    mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    
+    // Header Panel
+    JPanel headerPanel = new JPanel(new BorderLayout(10, 5));
+    headerPanel.setOpaque(false);
+    headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+    
+    JLabel titleIcon = new JLabel("👥");
+    titleIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+    titleIcon.setForeground(new Color(255, 102, 0));
+    
+    JLabel titleLabel = new JLabel("REGISTER NEW STAFF");
+    titleLabel.setFont(new Font("Impact", Font.BOLD, 24));
+    titleLabel.setForeground(new Color(255, 102, 0));
+    
+    JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+    titlePanel.setOpaque(false);
+    titlePanel.add(titleIcon);
+    titlePanel.add(titleLabel);
+    headerPanel.add(titlePanel, BorderLayout.CENTER);
+    
+    JPanel separatorLine = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            GradientPaint gp = new GradientPaint(0, 0, new Color(255, 102, 0), getWidth(), 0, new Color(255, 102, 0, 50));
+            g2d.setPaint(gp);
+            g2d.fillRect(0, 0, getWidth(), 2);
+            g2d.dispose();
+        }
+    };
+    separatorLine.setPreferredSize(new Dimension(400, 2));
+    headerPanel.add(separatorLine, BorderLayout.SOUTH);
+    
+    // Form Panel with ScrollPane
+    JPanel formContainer = new JPanel(new BorderLayout());
+    formContainer.setOpaque(false);
+    
+    JPanel formPanel = new JPanel(new GridBagLayout());
+    formPanel.setOpaque(false);
+    formPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+    
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.insets = new Insets(8, 10, 8, 10);
+    gbc.weightx = 1.0;
+    
+    int row = 0;
+    
+    // Username
+    addFormField(formPanel, gbc, "👤 USERNAME", row++);
+    JTextField usernameField = createStyledTextField();
+    gbc.gridy = row++;
+    formPanel.add(usernameField, gbc);
+    
+    // Role Selection
+    addFormField(formPanel, gbc, "🎯 ROLE", row++);
     String[] roles = {"GYM Manager", "Coach/Instructor", "Receptionist", "Staff"};
     JComboBox<String> roleBox = new JComboBox<>(roles);
-    JTextField payRateField = new JTextField("30000.00"); // Default for Manager
-    payRateField.setEditable(false); // Make it non-editable
-    JTextField emailField = new JTextField();
-
-    // Map roles to salaries
-roleBox.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent e) {
-            String selected = (String) roleBox.getSelectedItem();
-            switch (selected) {
-                case "GYM Manager":
-                    payRateField.setText("30000.00");
-                    break;
-                case "Coach/Instructor":
-                    payRateField.setText("25000.00");
-                    break;
-                case "Receptionist":
-                    payRateField.setText("15000.00");
-                    break;
-                case "Staff":
-                    payRateField.setText("10000.00");
-                    break;
-            }
+    roleBox.setBackground(new Color(45, 45, 45));
+    roleBox.setForeground(Color.WHITE);
+    roleBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    roleBox.setBorder(BorderFactory.createLineBorder(new Color(255, 102, 0, 100), 1));
+    roleBox.setPreferredSize(new Dimension(350, 35));
+    gbc.gridy = row++;
+    formPanel.add(roleBox, gbc);
+    
+    // Pay Rate (Auto-calculated)
+    addFormField(formPanel, gbc, "💰 SALARY RATE", row++);
+    JTextField payRateField = new JTextField("₱ 30,000.00");
+    payRateField.setEditable(false);
+    payRateField.setBackground(new Color(45, 45, 45));
+    payRateField.setForeground(new Color(255, 215, 0));
+    payRateField.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    payRateField.setHorizontalAlignment(JTextField.CENTER);
+    payRateField.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createLineBorder(new Color(255, 102, 0, 100), 1),
+        BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+    gbc.gridy = row++;
+    formPanel.add(payRateField, gbc);
+    
+    // Update salary based on role
+    roleBox.addActionListener(e -> {
+        String selected = (String) roleBox.getSelectedItem();
+        double salary = 0;
+        switch (selected) {
+            case "GYM Manager": salary = 30000; break;
+            case "Coach/Instructor": salary = 25000; break;
+            case "Receptionist": salary = 15000; break;
+            case "Staff": salary = 10000; break;
+        }
+        payRateField.setText(String.format("₱ %, .2f", salary));
+    });
+    
+    // Work Email
+    addFormField(formPanel, gbc, "📧 WORK EMAIL", row++);
+    JTextField emailField = createStyledTextField();
+    gbc.gridy = row++;
+    formPanel.add(emailField, gbc);
+    
+    // Contact Number
+    addFormField(formPanel, gbc, "📞 CONTACT NUMBER", row++);
+    JTextField contactField = createStyledTextField();
+    gbc.gridy = row++;
+    formPanel.add(contactField, gbc);
+    
+    // Password
+    addFormField(formPanel, gbc, "🔒 PASSWORD", row++);
+    JPasswordField passwordField = new JPasswordField();
+    stylePasswordField(passwordField);
+    gbc.gridy = row++;
+    formPanel.add(passwordField, gbc);
+    
+    // Confirm Password
+    addFormField(formPanel, gbc, "✓ CONFIRM PASSWORD", row++);
+    JPasswordField confirmField = new JPasswordField();
+    stylePasswordField(confirmField);
+    gbc.gridy = row++;
+    formPanel.add(confirmField, gbc);
+    
+    // Add a spacer at the bottom
+    gbc.gridy = row++;
+    gbc.fill = GridBagConstraints.NONE;
+    gbc.weighty = 1.0;
+    formPanel.add(Box.createVerticalGlue(), gbc);
+    
+    // Create ScrollPane
+    JScrollPane scrollPane = new JScrollPane(formPanel);
+    scrollPane.setBorder(BorderFactory.createEmptyBorder());
+    scrollPane.getViewport().setOpaque(false);
+    scrollPane.setOpaque(false);
+    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    
+    // Style scrollbar
+    scrollPane.getVerticalScrollBar().setBackground(new Color(30, 30, 30));
+    scrollPane.getVerticalScrollBar().setForeground(new Color(255, 102, 0));
+    
+    formContainer.add(scrollPane, BorderLayout.CENTER);
+    
+    // Button Panel
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+    buttonPanel.setOpaque(false);
+    buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+    
+    JButton btnSave = createGymButton("REGISTER STAFF", new Color(255, 102, 0));
+    JButton btnCancel = createGymButton("CANCEL", new Color(100, 100, 100));
+    
+    buttonPanel.add(btnSave);
+    buttonPanel.add(btnCancel);
+    
+    mainPanel.add(headerPanel, BorderLayout.NORTH);
+    mainPanel.add(formContainer, BorderLayout.CENTER);
+    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
+    // Add shadow effect
+    JPanel shadowPanel = new JPanel(new BorderLayout());
+    shadowPanel.setBackground(new Color(0, 0, 0, 80));
+    shadowPanel.setBorder(BorderFactory.createLineBorder(new Color(255, 102, 0, 150), 2));
+    shadowPanel.add(mainPanel, BorderLayout.CENTER);
+    
+    addDialog.add(shadowPanel);
+    
+    btnSave.addActionListener(e -> {
+        String username = usernameField.getText().trim();
+        String email = emailField.getText().trim();
+        String contact = contactField.getText().trim();
+        String password = new String(passwordField.getPassword());
+        String confirm = new String(confirmField.getPassword());
+        String role = (String) roleBox.getSelectedItem();
+        double salary = Double.parseDouble(payRateField.getText().replace("₱", "").replace(",", "").trim());
+        
+        // Validation
+        if (username.isEmpty()) {
+            showValidationError("Username is required!");
+            return;
+        }
+        if (username.length() < 3) {
+            showValidationError("Username must be at least 3 characters!");
+            return;
+        }
+        if (email.isEmpty()) {
+            showValidationError("Email is required!");
+            return;
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            showValidationError("Please enter a valid email address!");
+            return;
+        }
+        if (contact.isEmpty()) {
+            showValidationError("Contact number is required!");
+            return;
+        }
+        if (!contact.matches("^\\d{11}$")) {
+            showValidationError("Contact number must be 11 digits!");
+            return;
+        }
+        if (password.isEmpty()) {
+            showValidationError("Password is required!");
+            return;
+        }
+        if (password.length() < 6) {
+            showValidationError("Password must be at least 6 characters!");
+            return;
+        }
+        if (!password.equals(confirm)) {
+            showValidationError("Passwords do not match!");
+            return;
+        }
+        
+        // Check if username exists
+        if (Config.isUserExists(username)) {
+            showValidationError("Username already exists!");
+            return;
+        }
+        if (Config.isEmailExists(email)) {
+            showValidationError("Email already registered!");
+            return;
+        }
+        
+        // Generate Staff ID
+        String staffId = "STAFF-" + System.currentTimeMillis();
+        
+        // Register user
+        boolean success = Config.registerUser(staffId, username, password, email, contact, "Staff", role, "Active", salary);
+        
+        if (success) {
+            JOptionPane.showMessageDialog(addDialog, 
+                "✅ STAFF REGISTERED SUCCESSFULLY!\n\nID: " + staffId + "\nUsername: " + username + "\nRole: " + role, 
+                "Success", JOptionPane.INFORMATION_MESSAGE);
+            addDialog.dispose();
+            loadBookingData();
+        } else {
+            showValidationError("Registration failed! Please try again.");
         }
     });
-
-    Object[] message = {
-        "Username:", usernameField,
-        "Role:", roleBox,
-        "Pay Rate (Fixed):", payRateField,
-        "Work Email:", emailField
-    };
-
-    int option = JOptionPane.showConfirmDialog(this, message, "Add New Staff", JOptionPane.OK_CANCEL_OPTION);
-    if (option == JOptionPane.OK_OPTION) {
-        String sql = "INSERT INTO Management (Username, Role_Position, Salary_PayRate, WorkEmail) VALUES (?, ?, ?, ?)";
-        try (Connection conn = Config.connect(); PreparedStatement pst = conn.prepareStatement(sql)) {
-            pst.setString(1, usernameField.getText());
-            pst.setString(2, roleBox.getSelectedItem().toString());
-            pst.setDouble(3, Double.parseDouble(payRateField.getText()));
-            pst.setString(4, emailField.getText());
-            pst.executeUpdate();
-            loadBookingData();
-            JOptionPane.showMessageDialog(this, "Staff added successfully!");
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
-        }
-    }
+    
+    btnCancel.addActionListener(e -> addDialog.dispose());
+    
+    addDialog.setVisible(true);
 }
 
-    private void updateStaff() {
+private void updateStaff() {
     int selectedRow = tblBookings.getSelectedRow();
     if (selectedRow < 0) {
         JOptionPane.showMessageDialog(this, "Please select a staff member to update");
         return;
     }
-
+    
     int id = (int) tblBookings.getValueAt(selectedRow, 0);
-    String username = (String) tblBookings.getValueAt(selectedRow, 1);
-    String role = (String) tblBookings.getValueAt(selectedRow, 2);
-    String email = (String) tblBookings.getValueAt(selectedRow, 4);
-
-    JTextField usernameField = new JTextField(username);
-    String[] roles = {"GYM Manager", "Coach/Instructor", "Receptionist", "Staff"};
-    final JComboBox<String> roleBox = new JComboBox<>(roles);
-    final JTextField payRateField = new JTextField();
-    payRateField.setEditable(false);
-
-    roleBox.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent e) {
-            String selected = (String) roleBox.getSelectedItem();
-            switch (selected) {
-                case "GYM Manager":
-                    payRateField.setText("30000.00");
-                    break;
-                case "Coach/Instructor":
-                    payRateField.setText("25000.00");
-                    break;
-                case "Receptionist":
-                    payRateField.setText("15000.00");
-                    break;
-                case "Staff":
-                    payRateField.setText("10000.00");
-                    break;
+    String currentUsername = (String) tblBookings.getValueAt(selectedRow, 1);
+    String currentEmail = (String) tblBookings.getValueAt(selectedRow, 4);
+    String currentRole = (String) tblBookings.getValueAt(selectedRow, 2);
+    
+    // Create custom dialog
+    JDialog updateDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "UPDATE STAFF", true);
+    updateDialog.setLayout(new BorderLayout());
+    updateDialog.setSize(550, 650);
+    updateDialog.setLocationRelativeTo(this);
+    updateDialog.setUndecorated(true);
+    
+    // Main panel with gradient background
+    JPanel mainPanel = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            GradientPaint gp = new GradientPaint(0, 0, new Color(25, 25, 35), 0, getHeight(), new Color(15, 15, 25));
+            g2d.setPaint(gp);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+            g2d.setColor(new Color(255, 102, 0, 30));
+            for (int i = 0; i < 10; i++) {
+                g2d.drawLine(0, i * 50, getWidth(), i * 50 + 25);
             }
+            g2d.dispose();
+        }
+    };
+    mainPanel.setLayout(new BorderLayout(15, 15));
+    mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    
+    // Header Panel
+    JPanel headerPanel = new JPanel(new BorderLayout(10, 5));
+    headerPanel.setOpaque(false);
+    headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+    
+    JLabel titleIcon = new JLabel("✏️");
+    titleIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+    titleIcon.setForeground(new Color(255, 102, 0));
+    
+    JLabel titleLabel = new JLabel("UPDATE STAFF PROFILE");
+    titleLabel.setFont(new Font("Impact", Font.BOLD, 24));
+    titleLabel.setForeground(new Color(255, 102, 0));
+    
+    JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+    titlePanel.setOpaque(false);
+    titlePanel.add(titleIcon);
+    titlePanel.add(titleLabel);
+    headerPanel.add(titlePanel, BorderLayout.CENTER);
+    
+    JPanel separatorLine = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            GradientPaint gp = new GradientPaint(0, 0, new Color(255, 102, 0), getWidth(), 0, new Color(255, 102, 0, 50));
+            g2d.setPaint(gp);
+            g2d.fillRect(0, 0, getWidth(), 2);
+            g2d.dispose();
+        }
+    };
+    separatorLine.setPreferredSize(new Dimension(400, 2));
+    headerPanel.add(separatorLine, BorderLayout.SOUTH);
+    
+    // Form Panel with ScrollPane
+    JPanel formContainer = new JPanel(new BorderLayout());
+    formContainer.setOpaque(false);
+    
+    JPanel formPanel = new JPanel(new GridBagLayout());
+    formPanel.setOpaque(false);
+    formPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+    
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.insets = new Insets(8, 10, 8, 10);
+    gbc.weightx = 1.0;
+    
+    int row = 0;
+    
+    // Username (Display only, not editable)
+    addFormField(formPanel, gbc, "👤 USERNAME", row++);
+    JTextField usernameField = createStyledTextField();
+    usernameField.setText(currentUsername);
+    usernameField.setEditable(false);
+    usernameField.setBackground(new Color(35, 35, 45));
+    gbc.gridy = row++;
+    formPanel.add(usernameField, gbc);
+    
+    // Role (Display only)
+    addFormField(formPanel, gbc, "🎯 ROLE", row++);
+    JTextField roleField = createStyledTextField();
+    roleField.setText(currentRole);
+    roleField.setEditable(false);
+    roleField.setBackground(new Color(35, 35, 45));
+    gbc.gridy = row++;
+    formPanel.add(roleField, gbc);
+    
+    // Work Email (Editable)
+    addFormField(formPanel, gbc, "📧 WORK EMAIL", row++);
+    JTextField emailField = createStyledTextField();
+    emailField.setText(currentEmail);
+    gbc.gridy = row++;
+    formPanel.add(emailField, gbc);
+    
+    // Contact Number (Editable)
+    addFormField(formPanel, gbc, "📞 CONTACT NUMBER", row++);
+    JTextField contactField = createStyledTextField();
+    try (Connection conn = Config.connect();
+         PreparedStatement pst = conn.prepareStatement("SELECT Contact_No FROM Users WHERE Username = ?")) {
+        pst.setString(1, currentUsername);
+        ResultSet rs = pst.executeQuery();
+        if (rs.next()) {
+            contactField.setText(rs.getString("Contact_No"));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    gbc.gridy = row++;
+    formPanel.add(contactField, gbc);
+    
+    // Password (Optional)
+    addFormField(formPanel, gbc, "🔒 NEW PASSWORD (Optional)", row++);
+    JPasswordField passwordField = new JPasswordField();
+    stylePasswordField(passwordField);
+    passwordField.setToolTipText("Leave blank to keep current password");
+    gbc.gridy = row++;
+    formPanel.add(passwordField, gbc);
+    
+    // Confirm Password
+    addFormField(formPanel, gbc, "✓ CONFIRM PASSWORD", row++);
+    JPasswordField confirmField = new JPasswordField();
+    stylePasswordField(confirmField);
+    gbc.gridy = row++;
+    formPanel.add(confirmField, gbc);
+    
+    // Info note
+    JLabel infoNote = new JLabel("Note: Password can be changed only if you enter a new one");
+    infoNote.setFont(new Font("Segoe UI", Font.ITALIC, 10));
+    infoNote.setForeground(new Color(255, 165, 0));
+    infoNote.setHorizontalAlignment(SwingConstants.CENTER);
+    gbc.gridy = row++;
+    gbc.insets = new Insets(5, 10, 10, 10);
+    formPanel.add(infoNote, gbc);
+    
+    // Add spacer
+    gbc.gridy = row++;
+    gbc.fill = GridBagConstraints.NONE;
+    gbc.weighty = 1.0;
+    formPanel.add(Box.createVerticalGlue(), gbc);
+    
+    // Create ScrollPane
+    JScrollPane scrollPane = new JScrollPane(formPanel);
+    scrollPane.setBorder(BorderFactory.createEmptyBorder());
+    scrollPane.getViewport().setOpaque(false);
+    scrollPane.setOpaque(false);
+    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    
+    scrollPane.getVerticalScrollBar().setBackground(new Color(30, 30, 30));
+    scrollPane.getVerticalScrollBar().setForeground(new Color(255, 102, 0));
+    
+    formContainer.add(scrollPane, BorderLayout.CENTER);
+    
+    // Button Panel
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+    buttonPanel.setOpaque(false);
+    buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+    
+    JButton btnUpdate = createGymButton("UPDATE STAFF", new Color(255, 102, 0));
+    JButton btnCancel = createGymButton("CANCEL", new Color(100, 100, 100));
+    
+    buttonPanel.add(btnUpdate);
+    buttonPanel.add(btnCancel);
+    
+    mainPanel.add(headerPanel, BorderLayout.NORTH);
+    mainPanel.add(formContainer, BorderLayout.CENTER);
+    mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+    
+    JPanel shadowPanel = new JPanel(new BorderLayout());
+    shadowPanel.setBackground(new Color(0, 0, 0, 80));
+    shadowPanel.setBorder(BorderFactory.createLineBorder(new Color(255, 102, 0, 150), 2));
+    shadowPanel.add(mainPanel, BorderLayout.CENTER);
+    
+    updateDialog.add(shadowPanel);
+    
+    btnUpdate.addActionListener(e -> {
+        String email = emailField.getText().trim();
+        String contact = contactField.getText().trim();
+        String newPassword = new String(passwordField.getPassword());
+        String confirmPassword = new String(confirmField.getPassword());
+        
+        // Validation
+        if (email.isEmpty()) {
+            showValidationError("Email is required!");
+            return;
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            showValidationError("Please enter a valid email address!");
+            return;
+        }
+        if (contact.isEmpty()) {
+            showValidationError("Contact number is required!");
+            return;
+        }
+        if (!contact.matches("^\\d{11}$")) {
+            showValidationError("Contact number must be 11 digits!");
+            return;
+        }
+        
+        // Check if password is being updated
+        boolean updatePassword = !newPassword.isEmpty();
+        if (updatePassword) {
+            if (newPassword.length() < 6) {
+                showValidationError("Password must be at least 6 characters!");
+                return;
+            }
+            if (!newPassword.equals(confirmPassword)) {
+                showValidationError("Passwords do not match!");
+                return;
+            }
+        }
+        
+        try (Connection conn = Config.connect()) {
+            conn.setAutoCommit(false);
+            
+            // Update Users table
+            String userSql = "UPDATE Users SET Email = ?, Contact_No = ?" + (updatePassword ? ", Password = ?" : "") + " WHERE Username = ?";
+            
+            try (PreparedStatement pst = conn.prepareStatement(userSql)) {
+                int paramIndex = 1;
+                pst.setString(paramIndex++, email);
+                pst.setString(paramIndex++, contact);
+                if (updatePassword) {
+                    String hashedPassword = Config.hashPassword(newPassword);
+                    pst.setString(paramIndex++, hashedPassword);
+                }
+                pst.setString(paramIndex, currentUsername);
+                pst.executeUpdate();
+            }
+            
+            // Update Management table
+            String mgmtSql = "UPDATE Management SET WorkEmail = ? WHERE Username = ?";
+            try (PreparedStatement pst = conn.prepareStatement(mgmtSql)) {
+                pst.setString(1, email);
+                pst.setString(2, currentUsername);
+                pst.executeUpdate();
+            }
+            
+            conn.commit();
+            
+            JOptionPane.showMessageDialog(updateDialog, 
+                "STAFF UPDATED SUCCESSFULLY!\n\nUsername: " + currentUsername + "\nEmail: " + email, 
+                "Success", JOptionPane.INFORMATION_MESSAGE);
+            updateDialog.dispose();
+            loadBookingData();
+            
+        } catch (SQLException ex) {
+            try (Connection conn = Config.connect()) {
+                conn.rollback();
+            } catch (SQLException rollbackEx) {}
+            showValidationError("Update failed: " + ex.getMessage());
         }
     });
     
-    // Set initial selection and trigger the salary text
-    roleBox.setSelectedItem(role); 
-    JTextField emailField = new JTextField(email);
-
-    Object[] message = {
-        "Username:", usernameField,
-        "Role:", roleBox,
-        "Pay Rate (Fixed):", payRateField,
-        "Work Email:", emailField
-    };
-
-    int option = JOptionPane.showConfirmDialog(this, message, "Update Staff", JOptionPane.OK_CANCEL_OPTION);
-    if (option == JOptionPane.OK_OPTION) {
-        String sql = "UPDATE Management SET Username=?, Role_Position=?, Salary_PayRate=?, WorkEmail=? WHERE Staffid=?";
-        try (Connection conn = Config.connect(); 
-             PreparedStatement pst = conn.prepareStatement(sql)) {
-            pst.setString(1, usernameField.getText());
-            pst.setString(2, roleBox.getSelectedItem().toString());
-            pst.setDouble(3, Double.parseDouble(payRateField.getText()));
-            pst.setString(4, emailField.getText());
-            pst.setInt(5, id);
-            pst.executeUpdate();
-            loadBookingData();
-            JOptionPane.showMessageDialog(this, "Staff updated successfully!");
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
-        }
-    }
+    btnCancel.addActionListener(e -> updateDialog.dispose());
+    
+    updateDialog.setVisible(true);
 }
 
     private void deleteStaff() {
@@ -303,126 +729,68 @@ roleBox.addActionListener(new java.awt.event.ActionListener() {
             }
         }
     }
-
-    private void processPaycheck() {
-        int selectedRow = tblBookings.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a staff member for paycheck");
-            return;
-        }
-
-        int staffId = (int) tblBookings.getValueAt(selectedRow, 0);
-        String username = (String) tblBookings.getValueAt(selectedRow, 1);
-        String role = (String) tblBookings.getValueAt(selectedRow, 2);
-        String payRateStr = ((String) tblBookings.getValueAt(selectedRow, 3)).replace("₱ ", "").replace(",", "");
-        double payRate = Double.parseDouble(payRateStr);
-
-        // Calculate paycheck (monthly salary)
-        double monthlySalary = payRate;
-        double tax = monthlySalary * 0.10; // 10% tax
-        double netPay = monthlySalary - tax;
-
-        // Get current date for pay period
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        String payDate = new java.text.SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
-        
-        // Calculate pay period (first day of month to current date or last day of month)
-        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
-        String periodStart = new java.text.SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
-        
-        cal.set(java.util.Calendar.DAY_OF_MONTH, cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH));
-        String periodEnd = new java.text.SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
-
-        JTextField hoursField = new JTextField("160"); // Default monthly hours
-        JTextField bonusField = new JTextField("0");
-        JTextField deductionsField = new JTextField("0");
-        JTextField dateField = new JTextField(payDate);
-        JTextField startField = new JTextField(periodStart);
-        JTextField endField = new JTextField(periodEnd);
-
-        Object[] message = {
-            "Staff: " + username + " (" + role + ")",
-            "Base Monthly Rate: ₱" + String.format("%,.2f", monthlySalary),
-            "Pay Period Start (YYYY-MM-DD):", startField,
-            "Pay Period End (YYYY-MM-DD):", endField,
-            "Hours Worked:", hoursField,
-            "Bonus:", bonusField,
-            "Deductions:", deductionsField,
-            "Pay Date:", dateField
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, message, "Process Paycheck", 
-                                                   JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-            try {
-                int hours = Integer.parseInt(hoursField.getText());
-                double bonus = Double.parseDouble(bonusField.getText());
-                double deductions = Double.parseDouble(deductionsField.getText());
-                
-                // Calculate based on hours (hourly rate = monthlyRate / 160)
-                double hourlyRate = monthlySalary / 160;
-                double grossPay = hourlyRate * hours + bonus;
-                double taxAmount = grossPay * 0.10;
-                double finalNetPay = grossPay - taxAmount - deductions;
-
-                // Insert into payroll table
-                String sql = "INSERT INTO Payroll (Staff_ID, Pay_Date, Gross_Pay, Tax, Net_Pay, Bonus, " +
-                            "Deductions, Hours_Worked, Status, Pay_Period_Start, Pay_Period_End) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Paid', ?, ?)";
-                
-                try (Connection conn = Config.connect();
-                     PreparedStatement pst = conn.prepareStatement(sql)) {
-                    
-                    pst.setInt(1, staffId);
-                    pst.setString(2, dateField.getText());
-                    pst.setDouble(3, grossPay);
-                    pst.setDouble(4, taxAmount);
-                    pst.setDouble(5, finalNetPay);
-                    pst.setDouble(6, bonus);
-                    pst.setDouble(7, deductions);
-                    pst.setInt(8, hours);
-                    pst.setString(9, startField.getText());
-                    pst.setString(10, endField.getText());
-                    
-                    pst.executeUpdate();
-                    
-                    // Show paycheck stub
-                    String paycheck = "╔════════════════════ PAYCHECK STUB ════════════════════╗\n" +
-                                    "║ Staff: " + padRight(username, 40) + " ║\n" +
-                                    "║ Role: " + padRight(role, 42) + " ║\n" +
-                                    "║ Pay Period: " + padRight(startField.getText() + " to " + endField.getText(), 33) + " ║\n" +
-                                    "║ Pay Date: " + padRight(dateField.getText(), 37) + " ║\n" +
-                                    "╠══════════════════════════════════════════════════════╣\n" +
-                                    "║ Hours Worked: " + padRight(String.valueOf(hours), 34) + " ║\n" +
-                                    "║ Hourly Rate: ₱" + padRight(String.format("%,.2f", hourlyRate), 34) + " ║\n" +
-                                    "║ Gross Pay: ₱" + padRight(String.format("%,.2f", grossPay), 36) + " ║\n" +
-                                    "║ Bonus: ₱" + padRight(String.format("%,.2f", bonus), 41) + " ║\n" +
-                                    "║ Deductions: ₱" + padRight(String.format("%,.2f", deductions), 36) + " ║\n" +
-                                    "║ Tax (10%): ₱" + padRight(String.format("%,.2f", taxAmount), 37) + " ║\n" +
-                                    "╠══════════════════════════════════════════════════════╣\n" +
-                                    "║ NET PAY: ₱" + padRight(String.format("%,.2f", finalNetPay), 38) + " ║\n" +
-                                    "╚══════════════════════════════════════════════════════╝";
-                    
-                    JTextArea textArea = new JTextArea(paycheck);
-                    textArea.setEditable(false);
-                    textArea.setBackground(new Color(45, 45, 45));
-                    textArea.setForeground(Color.WHITE);
-                    textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-                    
-                    JOptionPane.showMessageDialog(this, new JScrollPane(textArea), 
-                                                  "Paycheck Generated", JOptionPane.INFORMATION_MESSAGE);
-                    
-                    loadBookingData(); // Refresh the table
-                    
-                } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "Error processing paycheck: " + e.getMessage());
-                }
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid number format");
-            }
-        }
-    }
     
+    private void addFormField(JPanel panel, GridBagConstraints gbc, String label, int row) {
+    JLabel lblIcon = new JLabel(label.split(" ")[0]);
+    lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+    JLabel lblText = new JLabel(label.substring(2));
+    lblText.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    lblText.setForeground(new Color(255, 102, 0));
+    
+    JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    labelPanel.setOpaque(false);
+    labelPanel.add(lblIcon);
+    labelPanel.add(lblText);
+    
+    gbc.gridx = 0;
+    gbc.gridy = row;
+    gbc.gridwidth = 2;
+    panel.add(labelPanel, gbc);
+    gbc.gridwidth = 1;
+}
+
+private JTextField createStyledTextField() {
+    JTextField field = new JTextField();
+    field.setBackground(new Color(45, 45, 45));
+    field.setForeground(Color.WHITE);
+    field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    field.setCaretColor(Color.WHITE);
+    field.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createLineBorder(new Color(255, 102, 0, 100), 1),
+        BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+    return field;
+}
+
+private void stylePasswordField(JPasswordField field) {
+    field.setBackground(new Color(45, 45, 45));
+    field.setForeground(Color.WHITE);
+    field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    field.setCaretColor(Color.WHITE);
+    field.setEchoChar('•');
+    field.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createLineBorder(new Color(255, 102, 0, 100), 1),
+        BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+}
+
+private JButton createGymButton(String text, Color bgColor) {
+    JButton button = new JButton(text);
+    button.setBackground(bgColor);
+    button.setForeground(Color.WHITE);
+    button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    button.setFocusPainted(false);
+    button.setBorderPainted(false);
+    button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    button.setPreferredSize(new Dimension(160, 40));
+    return button;
+}
+
+private void showValidationError(String message) {
+    JOptionPane.showMessageDialog(this, 
+        "⚠️ " + message, 
+        "Validation Error", 
+        JOptionPane.WARNING_MESSAGE);
+}
+
     private String padRight(String text, int length) {
         return String.format("%-" + length + "s", text);
     }
@@ -508,12 +876,11 @@ roleBox.addActionListener(new java.awt.event.ActionListener() {
         btnAdd = new javax.swing.JButton();
         btnUpdate = new javax.swing.JButton();
         btnDelete = new javax.swing.JButton();
-        btnPaycheck = new javax.swing.JButton();
 
         setOpaque(false);
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        lblTitle.setFont(new java.awt.Font("SansSerif", 1, 24)); // NOI18N
+        lblTitle.setFont(new java.awt.Font("Impact", 1, 24)); // NOI18N
         lblTitle.setForeground(new java.awt.Color(255, 255, 255));
         lblTitle.setText("STAFF MANAGE");
         add(lblTitle, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 200, 30));
@@ -558,7 +925,7 @@ roleBox.addActionListener(new java.awt.event.ActionListener() {
         tblBookings.setIntercellSpacing(new java.awt.Dimension(0, 0));
         tableScroll.setViewportView(tblBookings);
 
-        add(tableScroll, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, 540, 250));
+        add(tableScroll, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, 540, 230));
 
         buttonPanel.setOpaque(false);
         buttonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 0));
@@ -572,16 +939,12 @@ roleBox.addActionListener(new java.awt.event.ActionListener() {
         btnDelete.setText("DELETE");
         buttonPanel.add(btnDelete);
 
-        btnPaycheck.setText("PAYCHECK");
-        buttonPanel.add(btnPaycheck);
-
-        add(buttonPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 320, 540, 30));
+        add(buttonPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 300, 540, 30));
     }// </editor-fold>//GEN-END:initComponents
 	
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnAdd;
     private javax.swing.JButton btnDelete;
-    private javax.swing.JButton btnPaycheck;
     private javax.swing.JButton btnRefresh;
     private javax.swing.JButton btnSearch;
     private javax.swing.JButton btnUpdate;

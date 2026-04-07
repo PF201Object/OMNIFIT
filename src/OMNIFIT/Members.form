@@ -96,7 +96,7 @@
       </AuxValues>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="20" y="60" width="540" height="250"/>
+          <AbsoluteConstraints x="20" y="60" width="540" height="230"/>
         </Constraint>
       </Constraints>
 
@@ -126,7 +126,7 @@
       </Properties>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="20" y="320" width="540" height="40"/>
+          <AbsoluteConstraints x="20" y="300" width="540" height="30"/>
         </Constraint>
       </Constraints>
 
@@ -149,27 +149,6 @@
           <Properties>
             <Property name="text" type="java.lang.String" value="DELETE"/>
           </Properties>
-        </Component>
-        <Component class="javax.swing.JButton" name="btnPayment">
-          <Properties>
-            <Property name="text" type="java.lang.String" value="PAYMENT"/>
-          </Properties>
-        </Component>
-        <Component class="javax.swing.JButton" name="btnTransaction">
-          <Properties>
-            <Property name="text" type="java.lang.String" value="Transaction"/>
-          </Properties>
-          <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnTransactionActionPerformed"/>
-          </Events>
-        </Component>
-        <Component class="javax.swing.JButton" name="btnAuth">
-          <Properties>
-            <Property name="text" type="java.lang.String" value="AUTH"/>
-          </Properties>
-          <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnAuthActionPerformed"/>
-          </Events>
         </Component>
       </SubComponents>
     </Container>

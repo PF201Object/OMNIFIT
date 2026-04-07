@@ -227,9 +227,12 @@ public class IDPanel extends javax.swing.JPanel {
     private void btnBackActionPerformed(java.awt.event.ActionEvent evt) {
         performFlip(false);
     }
-
     private void btnDoneActionPerformed(java.awt.event.ActionEvent evt) {
-        dashboard.btnLogoutActionPerformed(evt);
+        // First, hide this ID panel
+        this.setVisible(false);
+
+        // Then show the login panel through dashboard
+        dashboard.showLogin();
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

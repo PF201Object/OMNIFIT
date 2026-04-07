@@ -268,7 +268,7 @@ private void deleteService() {
         setOpaque(false);
         setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        lblTitle.setFont(new java.awt.Font("SansSerif", 1, 24)); // NOI18N
+        lblTitle.setFont(new java.awt.Font("Impact", 1, 24)); // NOI18N
         lblTitle.setForeground(new java.awt.Color(255, 255, 255));
         lblTitle.setText("GYM SERVICES");
         add(lblTitle, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 290, 30));
@@ -313,7 +313,7 @@ private void deleteService() {
         });
         tableScroll.setViewportView(tblMenu);
 
-        add(tableScroll, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, 540, 250));
+        add(tableScroll, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 60, 540, 230));
 
         buttonPanel.setOpaque(false);
         buttonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 0));
@@ -332,7 +332,7 @@ private void deleteService() {
         btnDelete.setText("DELETE");
         buttonPanel.add(btnDelete);
 
-        add(buttonPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 320, 540, 30));
+        add(buttonPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 300, 540, 30));
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAddActionPerformed

@@ -1,6 +1,8 @@
 package Config;
 
 import java.sql.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Config {
     private static final String URL = "jdbc:sqlite:GMS.db";
@@ -37,16 +39,15 @@ public class Config {
                 + "FOREIGN KEY (Username) REFERENCES Users(Username));";
 
         // 3. Members Table Definition
-        // 3. Updated Members Table Definition
-                String membersTable = "CREATE TABLE IF NOT EXISTS Members ("
+        String membersTable = "CREATE TABLE IF NOT EXISTS Members ("
                         + "M_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
                         + "Name TEXT NOT NULL,"
                         + "Contact_No TEXT,"
                         + "Email TEXT UNIQUE,"
                         + "Join_date TEXT,"
-                        + "Expiry_date TEXT," // New Column
+                        + "Expiry_date TEXT,"
                         + "Membership_Status TEXT,"
-                        + "S_ID INTEGER,"      // Service Foreign Key
+                        + "S_ID INTEGER,"
                         + "FOREIGN KEY (S_ID) REFERENCES Services(S_ID));";
 
         // 4. Services Table Definition
@@ -61,13 +62,14 @@ public class Config {
         // 5. Payments Table for Members
         String paymentsTable = "CREATE TABLE IF NOT EXISTS Payments ("
         + "Payment_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-        + "Member_ID INTEGER," // <--- YOU WERE MISSING THIS LINE
+        + "Member_ID INTEGER,"
         + "Amount REAL DEFAULT 0.0,"
         + "Payment_Date TEXT,"
         + "Payment_Method TEXT,"
         + "Payment_Status TEXT DEFAULT 'Pending',"
         + "Reference_Number TEXT,"
         + "Service_ID INTEGER,"
+        + "Notes TEXT,"
         + "FOREIGN KEY (Member_ID) REFERENCES Members(M_ID),"
         + "FOREIGN KEY (Service_ID) REFERENCES Services(S_ID));";
 
@@ -134,13 +136,11 @@ public class Config {
             }
         }
         
-        // ADD THIS NEW MIGRATION HERE:
+        // Add Notes column to Payments table if it doesn't exist
         try {
-            // Add Notes column to Payments table if it doesn't exist
             stmt.execute("ALTER TABLE Payments ADD COLUMN Notes TEXT;");
             System.out.println("Migration: Notes column added to Payments table.");
         } catch (SQLException e) {
-            // If the column already exists, it will throw an error; we ignore it.
             if (!e.getMessage().contains("duplicate column name")) {
                 System.err.println("Migration Error: " + e.getMessage());
             }
@@ -158,6 +158,8 @@ public class Config {
         
         setupDefaultServices();
         setupSampleData();
+        migratePasswordsToHash();
+
         
     } catch (SQLException e) {
         System.err.println("DB Init Error: " + e.getMessage());
@@ -176,6 +178,9 @@ public class Config {
             return false;
         }
 
+        // HASH THE PASSWORD BEFORE STORING
+        String hashedPassword = hashPassword(pass);
+        
         String userSql = "INSERT INTO Users(U_ID, Username, Password, Email, Contact_No, Gender, Members_Status) VALUES(?,?,?,?,?,?,?)";
         String mgmtSql = "INSERT INTO Management(Username, Role_Position, WorkEmail, Salary_PayRate) VALUES(?,?,?,?)";
 
@@ -186,7 +191,7 @@ public class Config {
             try (PreparedStatement pstmt1 = conn.prepareStatement(userSql)) {
                 pstmt1.setString(1, customID);
                 pstmt1.setString(2, username);
-                pstmt1.setString(3, pass);
+                pstmt1.setString(3, hashedPassword);
                 pstmt1.setString(4, email);
                 pstmt1.setString(5, contact);
                 pstmt1.setString(6, gender); 
@@ -209,8 +214,8 @@ public class Config {
             return false;
         }
     }
-
-    // New method: Process Member Payment
+  
+    // Process Member Payment
     public static boolean processMemberPayment(int memberId, double amount, String method, int serviceId) {
         String sql = "INSERT INTO Payments (Member_ID, Amount, Payment_Date, Payment_Method, Payment_Status, Service_ID) " +
                     "VALUES (?, ?, date('now'), ?, 'Paid', ?)";
@@ -223,7 +228,6 @@ public class Config {
             
             int result = pst.executeUpdate();
             
-            // Record in transactions
             if (result > 0) {
                 recordTransaction("MEMBER_PAYMENT", amount, memberId, 0, null, null, 
                                  "Member payment processed");
@@ -236,7 +240,7 @@ public class Config {
         }
     }
 
-    // New method: Process Staff Payroll
+    // Process Staff Payroll
     public static boolean processStaffPayroll(int staffId, double grossPay, double tax, double netPay, 
                                              double bonus, int hours, String periodStart, String periodEnd) {
         String sql = "INSERT INTO Payroll (Staff_ID, Pay_Date, Gross_Pay, Tax, Net_Pay, Bonus, " +
@@ -255,7 +259,6 @@ public class Config {
             
             int result = pst.executeUpdate();
             
-            // Record in transactions
             if (result > 0) {
                 recordTransaction("STAFF_PAYROLL", netPay, 0, staffId, null, null, 
                                  "Staff payroll processed");
@@ -266,52 +269,42 @@ public class Config {
             System.err.println("Payroll Error: " + e.getMessage());
             return false;
         }
-        
-        
     }
     
     private static void setupDefaultServices() {
-    String checkServices = "SELECT COUNT(*) FROM Services"; 
-    String insertService = "INSERT INTO Services (Service_Name, Service_Type, Fee) VALUES (?, ?, ?)";
+        String checkServices = "SELECT COUNT(*) FROM Services"; 
+        String insertService = "INSERT INTO Services (Service_Name, Service_Type, Fee) VALUES (?, ?, ?)";
 
-    try (Connection conn = connect(); 
-         Statement stmt = conn.createStatement();
-         ResultSet rs = stmt.executeQuery(checkServices)) {
-        
-        if (rs.next() && rs.getInt(1) == 0) {
-            try (PreparedStatement pstmt = conn.prepareStatement(insertService)) {
-                
-                // --- Membership Access ---
-                addServiceEntry(pstmt, "Daily Pass", "Gym Access", 100.0);
-                addServiceEntry(pstmt, "Regular", "Membership", 800.0);
-                addServiceEntry(pstmt, "Premium", "Membership", 1500.0);
-                addServiceEntry(pstmt, "VIP", "Membership", 2500.0);
-
-                // --- Personal Training ---
-                addServiceEntry(pstmt, "Single Session", "Personal Training", 800.0);
-                addServiceEntry(pstmt, "Monthly Package", "Personal Training", 5000.0);
-
-                // --- Group Classes ---
-                addServiceEntry(pstmt, "Zumba", "Group Class", 150.0);
-                addServiceEntry(pstmt, "Yoga", "Group Class", 150.0);
-
-                System.out.println("All Default Gym Services (Memberships, PT, and Classes) added.");
+        try (Connection conn = connect(); 
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkServices)) {
+            
+            if (rs.next() && rs.getInt(1) == 0) {
+                try (PreparedStatement pstmt = conn.prepareStatement(insertService)) {
+                    addServiceEntry(pstmt, "Daily Pass", "Gym Access", 100.0);
+                    addServiceEntry(pstmt, "Regular", "Membership", 800.0);
+                    addServiceEntry(pstmt, "Premium", "Membership", 1500.0);
+                    addServiceEntry(pstmt, "VIP", "Membership", 2500.0);
+                    addServiceEntry(pstmt, "Single Session", "Personal Training", 800.0);
+                    addServiceEntry(pstmt, "Monthly Package", "Personal Training", 5000.0);
+                    addServiceEntry(pstmt, "Zumba", "Group Class", 150.0);
+                    addServiceEntry(pstmt, "Yoga", "Group Class", 150.0);
+                    System.out.println("All Default Gym Services added.");
+                }
             }
+        } catch (SQLException e) {
+            System.err.println("Error setting up default services: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("Error setting up default services: " + e.getMessage());
     }
-}
 
-// Small helper to keep the code clean and prevent repetition
-private static void addServiceEntry(PreparedStatement pstmt, String name, String type, double fee) throws SQLException {
-    pstmt.setString(1, name);
-    pstmt.setString(2, type);
-    pstmt.setDouble(3, fee);
-    pstmt.executeUpdate();
-}
+    private static void addServiceEntry(PreparedStatement pstmt, String name, String type, double fee) throws SQLException {
+        pstmt.setString(1, name);
+        pstmt.setString(2, type);
+        pstmt.setDouble(3, fee);
+        pstmt.executeUpdate();
+    }
 
-    // New method: Record Transaction
+    // Record Transaction
     private static void recordTransaction(String type, double amount, int memberId, int staffId, 
                                          Integer paymentId, Integer payrollId, String description) {
         String sql = "INSERT INTO Transactions (Transaction_Type, Amount, Transaction_Date, " +
@@ -343,7 +336,7 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-    // New method: Generate Receipt
+    // Generate Receipt
     public static String generateReceipt(int transactionId) {
         String receiptNumber = "RCP-" + System.currentTimeMillis();
         String sql = "INSERT INTO Receipts (Transaction_ID, Receipt_Number, Generated_Date, Receipt_Data) " +
@@ -415,35 +408,33 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-   public static String getUserRole(String identifier, String password) {
-    System.out.println("=== DEBUG: Getting user role for: " + identifier + " ===");
-    
-    // Simply get the Role from Users table - this is all we need for permissions
-    String sql = "SELECT Role FROM Users WHERE (Username = ? OR Email = ?) AND Password = ?";
-    
-    try (Connection conn = connect();
-         PreparedStatement pst = conn.prepareStatement(sql)) {
+    public static String getUserRole(String identifier, String password) {
+        System.out.println("=== DEBUG: Getting user role for: " + identifier + " ===");
         
-        pst.setString(1, identifier);
-        pst.setString(2, identifier);
-        pst.setString(3, password);
+        String sql = "SELECT Role, Password FROM Users WHERE (Username = ? OR Email = ?)";
         
-        ResultSet rs = pst.executeQuery();
-        if (rs.next()) {
-            String role = rs.getString("Role");
-            System.out.println("Role found in Users table: " + role);
-            return role;
-        } else {
-            System.out.println("No user found with those credentials");
+        try (Connection conn = connect();
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+            
+            pst.setString(1, identifier);
+            pst.setString(2, identifier);
+            
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                String storedPassword = rs.getString("Password");
+                if (verifyPassword(password, storedPassword)) {
+                    String role = rs.getString("Role");
+                    System.out.println("Role found: " + role);
+                    return role;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user role: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("Error getting user role: " + e.getMessage());
+        
+        return null;
     }
-    
-    return null;
-}
- 
-    
+
     public static boolean executeUpdate(String sql, Object... params) {
         try (Connection conn = connect(); PreparedStatement pst = conn.prepareStatement(sql)) {
             for (int i = 0; i < params.length; i++) {
@@ -457,18 +448,16 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
     }
 
     private static void setupSampleData() {
-        // Add sample members if none exist
         String checkMembers = "SELECT COUNT(*) FROM Members";
         try (Connection conn = connect(); 
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(checkMembers)) {
             
             if (rs.next() && rs.getInt(1) == 0) {
-                // Add sample members
                 String insertMembers = "INSERT INTO Members (Name, Contact_No, Email, Join_date, Membership_Status, S_ID) VALUES " +
-                    "('John Doe', '123-456-7890', 'john@email.com', date('now'), 'Active', 2)," + // 2 is Regular
-                    "('Jane Smith', '123-456-7891', 'jane@email.com', date('now'), 'Active', 3)," + // 3 is Premium
-                    "('Bob Johnson', '123-456-7892', 'bob@email.com', date('now'), 'Active', 4)";  // 4 is VIP
+                    "('John Doe', '123-456-7890', 'john@email.com', date('now'), 'Active', 2)," +
+                    "('Jane Smith', '123-456-7891', 'jane@email.com', date('now'), 'Active', 3)," +
+                    "('Bob Johnson', '123-456-7892', 'bob@email.com', date('now'), 'Active', 4)";
                 stmt.executeUpdate(insertMembers);
                 System.out.println("Sample members added.");
             }
@@ -504,7 +493,6 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-    // New method: Get payment history for a member
     public static ResultSet getMemberPayments(int memberId) {
         String sql = "SELECT * FROM Payments WHERE Member_ID = ? ORDER BY Payment_Date DESC";
         try {
@@ -518,7 +506,6 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-    // New method: Get payroll history for a staff member
     public static ResultSet getStaffPayroll(int staffId) {
         String sql = "SELECT * FROM Payroll WHERE Staff_ID = ? ORDER BY Pay_Date DESC";
         try {
@@ -532,7 +519,6 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
         }
     }
 
-    // New method: Get all transactions
     public static ResultSet getAllTransactions() {
         String sql = "SELECT * FROM Transactions ORDER BY Transaction_Date DESC";
         try {
@@ -544,40 +530,125 @@ private static void addServiceEntry(PreparedStatement pstmt, String name, String
             return null;
         }
     }
+    
     private static String currentUsername = "";
-private static String currentUserRole = "Guest";
+    private static String currentUserRole = "Guest";
 
-public static void setCurrentUser(String username, String role) {
-    currentUsername = username;
-    currentUserRole = role;
-}
+    public static void setCurrentUser(String username, String role) {
+        currentUsername = username;
+        currentUserRole = role;
+    }
 
-public static String getCurrentUsername() {
-    return currentUsername;
-}
+    public static String getCurrentUsername() {
+        return currentUsername;
+    }
 
-public static String getCurrentUserRole() {
-    return currentUserRole;
-}
+    public static String getCurrentUserRole() {
+        return currentUserRole;
+    }
 
-        public static boolean verifyAdminCredentials(String username, String password) {
-        // Added OR for 'Administrator' and made it case-insensitive via query logic if needed, 
-        // but SQLite is case-sensitive for strings by default.
-        String sql = "SELECT Role FROM Users WHERE Username = ? AND Password = ? " +
+    public static boolean verifyAdminCredentials(String username, String password) {
+        String sql = "SELECT Password, Role FROM Users WHERE Username = ? " +
                      "AND (Role = 'Admin' OR Role = 'Administrator' OR Role = 'admin')";
 
         try (Connection conn = connect();
              PreparedStatement pst = conn.prepareStatement(sql)) {
 
             pst.setString(1, username);
-            pst.setString(2, password);
-
             ResultSet rs = pst.executeQuery();
-            return rs.next(); // If a row exists, they are an admin
+            
+            if (rs.next()) {
+                String storedPassword = rs.getString("Password");
+                return verifyPassword(password, storedPassword);
+            }
 
         } catch (SQLException e) {
             System.err.println("Admin verification error: " + e.getMessage());
-            return false;
+        }
+        return false;
+    }
+
+    // Hash a password using Java's MessageDigest (SHA-256)
+    public static String hashPassword(String plainPassword) {
+        try {
+            // Generate random salt
+            byte[] salt = new byte[16];
+            new java.security.SecureRandom().nextBytes(salt);
+            String saltHex = bytesToHex(salt);
+            
+            // Hash password with salt
+            String hashed = hashWithSalt(plainPassword, saltHex);
+            return hashed;
+        } catch (Exception e) {
+            System.err.println("Hash error: " + e.getMessage());
+            return plainPassword;
+        }
+    }
+
+    private static String hashWithSalt(String password, String salt) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(salt.getBytes());
+            byte[] hash = md.digest(password.getBytes());
+            return salt + ":" + bytesToHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            System.err.println("Hash error: " + e.getMessage());
+            return password;
+        }
+    }
+
+    // Verify a password against its hash
+    public static boolean verifyPassword(String plainPassword, String storedHash) {
+        if (storedHash == null || !storedHash.contains(":")) {
+            return plainPassword.equals(storedHash);
+        }
+        
+        String[] parts = storedHash.split(":");
+        if (parts.length == 2) {
+            String salt = parts[0];
+            String expectedHash = parts[1];
+            String computedHash = hashWithSalt(plainPassword, salt).split(":")[1];
+            return expectedHash.equals(computedHash);
+        }
+        return false;
+    }
+
+    // Convert byte array to hex string
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    // Migrate existing plain text passwords to hashed format
+    private static void migratePasswordsToHash() {
+        String sql = "SELECT Username, Password FROM Users";
+        String updateSql = "UPDATE Users SET Password = ? WHERE Username = ?";
+        
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                String username = rs.getString("Username");
+                String password = rs.getString("Password");
+                
+                if (password != null && !password.contains(":")) {
+                    String hashedPassword = hashPassword(password);
+                    
+                    try (PreparedStatement pst = conn.prepareStatement(updateSql)) {
+                        pst.setString(1, hashedPassword);
+                        pst.setString(2, username);
+                        pst.executeUpdate();
+                        System.out.println("Migrated password for user: " + username);
+                    }
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error migrating passwords: " + e.getMessage());
         }
     }
 }
