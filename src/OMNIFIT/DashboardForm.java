@@ -1,7 +1,6 @@
 package OMNIFIT;
 
 import Config.Design;
-import Config.Animation;
 import Config.Config;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -39,8 +38,10 @@ public final class DashboardForm extends javax.swing.JFrame {
     public Design dashboardPanel;
     private Transaction transactionPanel;
     private IDPanel currentIDPanel;
-    private Animation loginRegisterPanel;
-    
+    private LoginForm loginForm;
+    private Registration1 registration1;
+    private Registration2 registration2;
+        
     // Animation timer for Welcome panel
         private Timer welcomeAnimTimer;
         private float welcomeGlowIntensity = 0f;
@@ -1191,46 +1192,55 @@ private float getFloatClientProperty(JButton button, String key, float defaultVa
     return defaultValue;
 }
 
-private void customInit() {
-    this.setBackground(new Color(0, 0, 0, 0));
-    this.setLocationRelativeTo(null);
-
-    Background.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mousePressed(MouseEvent evt) {
-            mouseX = evt.getX();
-            mouseY = evt.getY();
-        }
-    });
-    
-    userPanel = new User();
-    managementPanel = new Management();
-    servicesPanel = new Services();
-    membersPanel = new Members();
-    dashboardPanel = new Design();
-    transactionPanel = new Transaction();
-    profilePanel = new Profile(this);
-    loginRegisterPanel = new Animation(this);
-
-    int x = 220, y = 30, w = 570, h = 350;
-
-    getContentPane().add(dashboardPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(membersPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(servicesPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(transactionPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(managementPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(userPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(profilePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-    getContentPane().add(loginRegisterPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
-
-    getContentPane().setComponentZOrder(Background, getContentPane().getComponentCount() - 1);
-    
-    getContentPane().revalidate();
-    getContentPane().repaint();
-
-    hideAllPanels();
-}
-
+ private void customInit() {
+        this.setBackground(new Color(0, 0, 0, 0));
+        this.setLocationRelativeTo(null);
+        
+        Background.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent evt) {
+                mouseX = evt.getX();
+                mouseY = evt.getY();
+            }
+        });
+        
+        userPanel = new User();
+        managementPanel = new Management();
+        servicesPanel = new Services();
+        membersPanel = new Members();
+        dashboardPanel = new Design();
+        transactionPanel = new Transaction();
+        profilePanel = new Profile(this);
+        
+        // Initialize new forms
+        loginForm = new LoginForm(this);
+        registration1 = new Registration1(this);
+        registration2 = new Registration2(this, registration1);
+        
+        int x = 220, y = 30, w = 570, h = 350;
+        
+        // Add all panels
+        getContentPane().add(dashboardPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(membersPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(servicesPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(transactionPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(managementPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(userPanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(profilePanel, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        
+        // Add new forms
+        getContentPane().add(loginForm, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(registration1, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        getContentPane().add(registration2, new org.netbeans.lib.awtextra.AbsoluteConstraints(x, y, w, h));
+        
+        getContentPane().setComponentZOrder(Background, getContentPane().getComponentCount() - 1);
+        
+        getContentPane().revalidate();
+        getContentPane().repaint();
+        
+        hideAllPanels();
+    }
+ 
 public void hideAllPanels() {
     dashboardPanel.setVisible(false);
     membersPanel.setVisible(false);
@@ -1247,7 +1257,10 @@ public void hideAllPanels() {
     MANAGEMENT.setVisible(false);
     btnUser.setVisible(false);
     
-    // Show Welcome panel and Logo only when not logged in (handled in showLogin)
+    // Hide ALL forms
+    loginForm.setVisible(false);
+    registration1.setVisible(false);
+    registration2.setVisible(false);
     
     if (currentIDPanel != null) {
         currentIDPanel.setVisible(false);
@@ -1273,46 +1286,38 @@ public void showIDCard(String id, String name, String role, String email, String
     getContentPane().repaint();
 }
 
-public void showPanel(JPanel panel) {
-    // Update this condition to use loginRegisterPanel
-    if (loginRegisterPanel.isVisible()) {
-        if (!userRole.equals("Guest")) {
-            loginRegisterPanel.setVisible(false);
-        } else {
-            return;
+    public void showPanel(JPanel panel) {
+        // Hide all forms if any are visible
+        loginForm.setVisible(false);
+        registration1.setVisible(false);
+        registration2.setVisible(false);
+        
+        dashboardPanel.setVisible(false);
+        membersPanel.setVisible(false);
+        servicesPanel.setVisible(false);
+        transactionPanel.setVisible(false);
+        managementPanel.setVisible(false);
+        userPanel.setVisible(false);
+        profilePanel.setVisible(false);
+        
+        if (panel instanceof Design) {
+            ((Design) panel).loadDashboardData();
+        } else if (panel instanceof Members) {
+            ((Members) panel).loadMemberData();
+        } else if (panel instanceof Transaction) {
+            ((Transaction) panel).loadTransactionData();
+        } else if (panel instanceof Management) {
+            ((Management) panel).loadBookingData();
+        } else if (panel instanceof User) {
+            ((User) panel).loadUserData();
+        } else if (panel instanceof Profile) {
+            ((Profile) panel).loadUserProfile(currentUsername);
         }
+        
+        panel.setVisible(true);
+        panel.requestFocus();
     }
-
-    dashboardPanel.setVisible(false);
-    membersPanel.setVisible(false);
-    servicesPanel.setVisible(false);
-    transactionPanel.setVisible(false);
-    managementPanel.setVisible(false);
-    userPanel.setVisible(false);
-    profilePanel.setVisible(false);
-
-    if (panel instanceof Design) {
-        ((Design) panel).loadDashboardData();
-    } else if (panel instanceof Members) {
-        ((Members) panel).loadMemberData();
-    } else if (panel instanceof Services) {
-        // Services panel might not have loadServicesData method
-        // Just show the panel without loading data
-        // If it has a different method, use that instead
-    } else if (panel instanceof Transaction) {
-        ((Transaction) panel).loadTransactionData();
-    } else if (panel instanceof Management) {
-        ((Management) panel).loadBookingData();
-    } else if (panel instanceof User) {
-        ((User) panel).loadUserData();
-    } else if (panel instanceof Profile) {
-        ((Profile) panel).loadUserProfile(currentUsername);
-    }
-
-    panel.setVisible(true);
-    panel.requestFocus(); 
-}
-
+    
 public void showLogin() {
     hideAllPanels();
     
@@ -1320,9 +1325,18 @@ public void showLogin() {
     Welcome.setVisible(true);
     Logo.setVisible(true);
     
-    loginRegisterPanel.setVisible(true);
-    loginRegisterPanel.clearFields();
+    // IMPORTANT: Hide both registration forms
+    registration1.setVisible(false);
+    registration2.setVisible(false);
+    
+    // Show only login form
+    loginForm.setVisible(true);
+    loginForm.clearFields();
+    
+    getContentPane().revalidate();
+    getContentPane().repaint();
 }
+
 
 public void showRegistrationStep1() {
     hideAllPanels();
@@ -1331,8 +1345,16 @@ public void showRegistrationStep1() {
     Welcome.setVisible(true);
     Logo.setVisible(true);
     
-    loginRegisterPanel.setVisible(true);
-    loginRegisterPanel.clearFields();
+    // Hide login and registration2
+    loginForm.setVisible(false);
+    registration2.setVisible(false);
+    
+    // Show only registration1
+    registration1.setVisible(true);
+    registration1.clearFields();
+    
+    getContentPane().revalidate();
+    getContentPane().repaint();
 }
 
 public void showRegistrationStep2() {
@@ -1342,56 +1364,68 @@ public void showRegistrationStep2() {
     Welcome.setVisible(true);
     Logo.setVisible(true);
     
-    loginRegisterPanel.setVisible(true);
-}
-
-public void loginSuccess(String username, String role) {
-    this.currentUsername = username;
-    this.userRole = role;
-    hideAllPanels();
+    // Hide login and registration1
+    loginForm.setVisible(false);
+    registration1.setVisible(false);
     
-    Config.setCurrentUser(username, role);
-      
-    loginRegisterPanel.setVisible(false);
+    // Show only registration2
+    registration2.setVisible(true);
+    registration2.clearSelections();
     
-    // Hide Welcome panel and Logo after successful login
-    Welcome.setVisible(false);
-    Logo.setVisible(false);
-    
-    // Show all navigation buttons
-    DASHBOARD.setVisible(true);
-    MEMBERS.setVisible(true);
-    SERVICES.setVisible(true);
-    TRANSACTION.setVisible(true);
-    profile.setVisible(true); 
-    
-    boolean isAdmin = role != null && (
-                      role.equalsIgnoreCase("Admin") || 
-                      role.equalsIgnoreCase("Administrator")
-                      );
-    
-    MANAGEMENT.setVisible(isAdmin); 
-    btnUser.setVisible(isAdmin);
-    
-    // Set all buttons to expanded state initially
-    JButton[] buttons = {DASHBOARD, MEMBERS, SERVICES, TRANSACTION, MANAGEMENT, btnUser};
-    for (JButton button : buttons) {
-        if (button.isVisible()) { // Only for visible buttons
-            ButtonAnimationState state = buttonStates.get(button);
-            if (state != null) {
-                state.keepExpanded = true;
-                state.expandProgress = 1.0f;
-            }
-            button.setSize(expandedButtonWidth, buttonHeight);
-            button.repaint();
-        }
-    }
-    
-    showPanel(dashboardPanel);
     getContentPane().revalidate();
     getContentPane().repaint();
 }
 
+
+    public void loginSuccess(String username, String role) {
+        this.currentUsername = username;
+        this.userRole = role;
+        hideAllPanels();
+        
+        Config.setCurrentUser(username, role);
+        
+        loginForm.setVisible(false);
+        registration1.setVisible(false);
+        registration2.setVisible(false);
+        
+        // Hide Welcome panel and Logo after successful login
+        Welcome.setVisible(false);
+        Logo.setVisible(false);
+        
+        // Show all navigation buttons
+        DASHBOARD.setVisible(true);
+        MEMBERS.setVisible(true);
+        SERVICES.setVisible(true);
+        TRANSACTION.setVisible(true);
+        profile.setVisible(true);
+        
+        boolean isAdmin = role != null && (
+                          role.equalsIgnoreCase("Admin") || 
+                          role.equalsIgnoreCase("Administrator")
+                          );
+        
+        MANAGEMENT.setVisible(isAdmin);
+        btnUser.setVisible(isAdmin);
+        
+        // Set all buttons to expanded state initially
+        JButton[] buttons = {DASHBOARD, MEMBERS, SERVICES, TRANSACTION, MANAGEMENT, btnUser};
+        for (JButton button : buttons) {
+            if (button.isVisible()) {
+                ButtonAnimationState state = buttonStates.get(button);
+                if (state != null) {
+                    state.keepExpanded = true;
+                    state.expandProgress = 1.0f;
+                }
+                button.setSize(expandedButtonWidth, buttonHeight);
+                button.repaint();
+            }
+        }
+        
+        showPanel(dashboardPanel);
+        getContentPane().revalidate();
+        getContentPane().repaint();
+    }
+    
 private javax.swing.ImageIcon getGlowIcon(javax.swing.ImageIcon icon) {
     if (icon == null) return null;
     
@@ -1445,16 +1479,16 @@ private void btnUserActionPerformed(java.awt.event.ActionEvent evt) {
 
 private void btnExitActionPerformed(java.awt.event.ActionEvent evt) {}
 
-void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) {
-    userRole = "Guest";
-    currentUsername = "";
-    
-    if (loginRegisterPanel != null) {
-        loginRegisterPanel.clearFields();
+    void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) {
+        userRole = "Guest";
+        currentUsername = "";
+        
+        loginForm.clearFields();
+        registration1.clearFields();
+        registration2.clearSelections();
+        
+        showLogin();
     }
-    
-    showLogin();
-}
 
 private void DASHBOARDMouseEntered(java.awt.event.MouseEvent evt) { 
     runAnimation(DASHBOARD, true); 
